@@ -184,7 +184,7 @@ def MaxLikelhoodEstimationFFT_3D(pImg, idSphImg, iterLimit = 20,debug_flag = Tru
 #      f_old = (-1.0+np.sqrt(1.0 + 2.0*constr*f_old))/(constr)
 #      print("result:",hm[36,36,36],f_old[36,36,36],r[36,36,36],p[36,36,36],e[36,36,36],rnew[36,36,36])
 
-#      f_old = f_old / np.amax(f_old) 
+      f_old = f_old / np.amax(f_old) *255
 #  maximum  entropy regularisation - seems to work bad
 #      f_old = f_old * rnew - 0.00001*rnew *np.log(rnew)
 # end of iteration cycle

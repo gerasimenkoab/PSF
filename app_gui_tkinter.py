@@ -348,19 +348,29 @@ class MainWindowGUI(Tk):
 #            self.PlotBead3D(self.imgPSF) 
             self.figDec, axs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
             self.figDec.suptitle("Deconvolved")
-            axs[0].pcolormesh(self.imgDecon[self.imgDecon.shape[0] // 2,:,:],cmap=cm.jet)
             dN = self.imgDecon.shape[0]
-            xrange = np.arange(0,dN) 
-            print("Decon",self.imgDecon[dN // 2,:,dN // 2])
-            print("Raw",self.imgBeadRaw[dN // 2,:,dN // 2])
-            axs[1].plot(xrange,self.imgBeadRaw[dN // 2,:,dN // 2],'b.-')
-            axs[1].plot(xrange,self.imgDecon[dN // 2,:,dN // 2],'r.-')
-#            axs[1].pcolormesh(self.imgDecon[:,self.imgDecon.shape[0] // 2,:],cmap=cm.jet)
+            axs[0].pcolormesh(self.imgDecon[dN // 2,:,:],cmap=cm.jet)
+#            axs[1].plot(xrange,self.imgBeadRaw[dN // 2,:,dN // 2],'b.-')
+#            axs[1].plot(xrange,self.imgDecon[dN // 2,:,dN // 2],'r.-')
+            axs[1].pcolormesh(self.imgDecon[:,dN // 2,:],cmap=cm.jet)
             axs[2].pcolormesh(self.imgDecon[:,:, dN // 2],cmap=cm.jet)
             # plt.show()
             # Instead of plt.show creating Tkwidget from figure
             self.figDec_canvas_agg = FigureCanvasTkAgg(self.figDec,self.cnvDecon)
             self.figDec_canvas_agg.get_tk_widget().grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
+
+            figComp, ax = plt.subplots(1, 1, sharex = False, figsize=(2,6))
+            figComp.suptitle("Original(blue) vs Deconvolved(red)")
+            xrange = np.arange(0,dN) 
+            ax.plot(xrange,self.imgBeadRaw[dN // 2,:,dN // 2],'b.-')
+            ax.plot(xrange,self.imgDecon[dN // 2,:,dN // 2],'r.-')
+
+            top= Toplevel(self)
+            top.geometry("300x300")
+            top.title("Compare")
+            cnvCompare = Canvas(top,  width = 290, height = 290, bg = 'white')
+            cnvCompare.pack(side = TOP, fill = BOTH, expand = True)
+            FigureCanvasTkAgg(figComp,cnvCompare).get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
 
 
 if __name__ == '__main__':
