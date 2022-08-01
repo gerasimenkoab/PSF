@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter.messagebox import showerror, showinfo
 from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import askopenfilenames
 from PIL import ImageTk, Image
 
 import os.path
@@ -14,6 +15,8 @@ import file_inout as fio
 import deconvolution as decon
 import img_transform as imtrans
 
+import numpy as np
+import itertools
 """
 TODO: 
 - [x] implement bead images draw in tkinter with matplotlib subplot
@@ -72,7 +75,10 @@ class MainWindowGUI(Tk):
         Button(text = 'Save PSF multi-file',command=self.SavePSFMulti).grid(row=10, column=1)
         Button(text = 'Save PSF single-file',command=self.SavePSFSingle).grid(row=10, column=2)
 
-        Button(text = 'EXIT!',command = self.destroy).grid(row=11,column=1)
+        Button(text = 'Load Image',command = quit).grid(row=11,column=1)
+        Button(text = 'Load PSF', command = self.LoadPSFImageFile).grid(row=11,column=2)
+        Button(text = 'Deconvolve',command = self.DeconvolveIt).grid(row=11,column=3)
+        Button(text = 'EXIT!',command = quit).grid(row=11,column=6)
 
         Label(self, text="").grid(row = 1, column = 4)         # blanc insert
 
@@ -80,6 +86,8 @@ class MainWindowGUI(Tk):
         self.cnvImg.grid(row = 1,column=5, rowspan=10,sticky=(N,E,S,W))
         self.cnvPSF = Canvas(self,  width = 150, height = 450, bg = 'white')
         self.cnvPSF.grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
+        self.cnvDecon = Canvas(self,  width = 150, height = 450, bg = 'white')
+        self.cnvDecon.grid(row = 1,column=7, rowspan=10,sticky=(N,E,S,W))
         
         Label(self, text = "").grid(row = 12,column = 6) #blanc insert
 
@@ -109,6 +117,7 @@ class MainWindowGUI(Tk):
             self.imgBeadRaw = fio.ReadTiffStackFileTFF(self.beadImgPath)
             # creating figure with matplotlib
             fig, axs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
+            fig.suptitle('Bead')
             axs[0].pcolormesh(self.imgBeadRaw[self.imgBeadRaw.shape[0] // 2,:,:],cmap=cm.jet)
             axs[1].pcolormesh(self.imgBeadRaw[:,self.imgBeadRaw.shape[1] // 2,:],cmap=cm.jet)
             axs[2].pcolormesh(self.imgBeadRaw[:,:,self.imgBeadRaw.shape[2] // 2],cmap=cm.jet)
@@ -123,31 +132,7 @@ class MainWindowGUI(Tk):
         # updating scrollers
         #self.cnv1.configure(scrollregion = self.cnv1.bbox('all'))  
 
-    def LoadPSFImage(self):
-        """Loading PSF from matplotlib object"""
-        if not hasattr(self,'beadImgPath') :
-            showerror("Error","Select bead image first!")
-            return
-        elif self.beadImgPath == "":
-            showerror("Error","Bead image path is empty!")
-            return
 
-        try:
-            self.imgBeadRaw = Image.open(self.beadImgPath)
-            print("Number of frames: ", self.imgBeadRaw.n_frames)
-            frameNumber = int( self.imgBeadRaw.n_frames / 2)
-            print("Frame number for output: ", frameNumber)
-            # setting imgTmp to desired number
-            self.imgBeadRaw.seek(frameNumber)
-            # preparing image for canvas from desired frame
-            self.cnvBeadImg = ImageTk.PhotoImage(self.imgBeadRaw)
-        except:
-            showerror("Error","Can't read file.")
-            return
-        # replacing image on the canvas
-        self.cnvImg.create_image(0, 0, image = self.cnvBeadImg, anchor = NW)
-        # updating scrollers
-        #self.cnv1.configure(scrollregion = self.cnv1.bbox('all'))  
 
     def CenteringImageInt(self):
         """Centering image array by intensity"""
@@ -160,9 +145,9 @@ class MainWindowGUI(Tk):
             self.imgBeadRaw = imtrans.ShiftWithPadding(self.imgBeadRaw)
             # creating figure with matplotlib
             fig, axs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
-            axs[0].pcolormesh(self.imgBeadRaw[self.imgBeadRaw.shape[0] // 2,:,:],cmap=cm.gray)
-            axs[1].pcolormesh(self.imgBeadRaw[:,self.imgBeadRaw.shape[1] // 2,:],cmap=cm.gray)
-            axs[2].pcolormesh(self.imgBeadRaw[:,:,self.imgBeadRaw.shape[2] // 2],cmap=cm.gray)
+            axs[0].pcolormesh(self.imgBeadRaw[self.imgBeadRaw.shape[0] // 2,:,:],cmap=cm.jet)
+            axs[1].pcolormesh(self.imgBeadRaw[:,self.imgBeadRaw.shape[1] // 2,:],cmap=cm.jet)
+            axs[2].pcolormesh(self.imgBeadRaw[:,:,self.imgBeadRaw.shape[2] // 2],cmap=cm.jet)
             # plt.show()
             # Instead of plt.show creating Tkwidget from figure
             self.figIMG_canvas_agg = FigureCanvasTkAgg(fig,self.cnvImg)
@@ -171,7 +156,31 @@ class MainWindowGUI(Tk):
         except:
             showerror("centering error")
 
+    def PlotBead3D(self, bead, treshold = np.exp(-1)*255.0):
+        """Plot 3D view of a given bead"""
+        #теперь разбрасываем бид по отдельным массивам .
+        zcoord = np.zeros(bead.shape[0]*bead.shape[1]*bead.shape[2])
+        xcoord = np.zeros(bead.shape[0]*bead.shape[1]*bead.shape[2])
+        ycoord = np.zeros(bead.shape[0]*bead.shape[1]*bead.shape[2])
+        voxelVal = np.zeros(bead.shape[0]*bead.shape[1]*bead.shape[2])
+        nn = 0
+        bead = bead/np.amax(bead)*255.0
+        for i,j,k in itertools.product(range(bead.shape[0]),range(bead.shape[1]),range(bead.shape[2])):
+                zcoord[nn] =  i
+                xcoord[nn] =  j
+                ycoord[nn] =  k
+                voxelVal[nn] =  bead[i,j,k]
+                nn = nn + 1
+        fig1= plt.figure()
+        ax = fig1.add_subplot(111, projection='3d')
+        selection = voxelVal> treshold
+        im = ax.scatter(xcoord[selection], ycoord[selection], zcoord[selection], c=voxelVal[selection],alpha=0.5, cmap=cm.jet)
+        fig1.colorbar(im)
+        ax.set_xlabel('X Label')
+        ax.set_ylabel('Y Label')
+        ax.set_zlabel('Z Label')
 
+        plt.show()
 
     def CalculatePSF(self):
         txt_beadSizenm = self.beadSizeWgt.get()
@@ -197,16 +206,22 @@ class MainWindowGUI(Tk):
                 self.imArr1 = imtrans.PaddingImg(self.imgBeadRaw)
                 print("shapes:",self.imArr1.shape[0],self.imArr1.shape[1],self.imArr1.shape[2])
                 self.imgPSF = decon.MaxLikelhoodEstimationFFT_3D(self.imArr1, decon.MakeIdealSphereArray(self.imArr1.shape[0], self.beadSizepx), self.itNum)
-                self.figPSF, axs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
-                axs[0].pcolormesh(self.imgPSF[self.imgBeadRaw.shape[0] // 2,:,:],cmap=cm.gray)
-                axs[1].pcolormesh(self.imgPSF[:,self.imgBeadRaw.shape[0] // 2,:],cmap=cm.gray)
-                axs[2].pcolormesh(self.imgPSF[:,:,self.imgBeadRaw.shape[0] // 2],cmap=cm.gray)
-                # plt.show()
-                # Instead of plt.show creating Tkwidget from figure
-                self.figPSF_canvas_agg = FigureCanvasTkAgg(self.figPSF,self.cnvPSF)
-                self.figPSF_canvas_agg.get_tk_widget().grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
             except:
                 showerror("Error. Can't finish convolution properly.")
+                return
+#            self.PlotBead3D(self.imgPSF)
+            self.figPSF, axs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
+            self.figPSF.suptitle("PSF")
+            axs[0].pcolormesh(self.imgPSF[self.imgBeadRaw.shape[0] // 2,:,:],cmap=cm.jet)
+            axs[1].pcolormesh(self.imgPSF[:,self.imgBeadRaw.shape[0] // 2,:],cmap=cm.jet)
+            axs[2].pcolormesh(self.imgPSF[:,:,self.imgBeadRaw.shape[0] // 2],cmap=cm.jet)
+            # plt.show()
+            # Instead of plt.show creating Tkwidget from figure
+            self.figPSF_canvas_agg = FigureCanvasTkAgg(self.figPSF,self.cnvPSF)
+            self.figPSF_canvas_agg.get_tk_widget().grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
+
+
+
     def SavePSFMulti(self):
         """Save PSF array as single-page tiff files"""
         if hasattr(self, 'imgPSF')  :
@@ -248,8 +263,98 @@ class MainWindowGUI(Tk):
             showinfo("PSF File saved at:", txt_folder)
 
     def BeadExtractPlugin(self):
-        self.BeadExtraction = BeadExtraction()
+#        self.BeadExtraction = BeadExtraction()
+        return
 
+
+    def LoadPSFImageFile(self):
+        """Loading raw bead photo from file at self.beadImgPath"""
+        fileList = askopenfilenames(title = 'Load Beads Photo')
+        try:
+            imgPSFPath = fileList[0]
+            print("Open path: ",imgPSFPath)
+            self.imgPSF = fio.ReadTiffStackFile(imgPSFPath)
+            # creating figure with matplotlib
+            self.figPSF, axs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
+            self.figPSF.suptitle("PSF")
+            axs[0].pcolormesh(self.imgPSF[self.imgPSF.shape[0] // 2,:,:],cmap=cm.jet)
+            axs[1].pcolormesh(self.imgPSF[:,self.imgPSF.shape[0] // 2,:],cmap=cm.jet)
+            axs[2].pcolormesh(self.imgPSF[:,:,self.imgPSF.shape[0] // 2],cmap=cm.jet)
+            # plt.show()
+            # Instead of plt.show creating Tkwidget from figure
+            self.figPSF_canvas_agg = FigureCanvasTkAgg(self.figPSF,self.cnvPSF)
+            self.figPSF_canvas_agg.get_tk_widget().grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
+
+        except:
+            showerror("LoadBeadImageFile: Error","Can't read file.")
+            return
+        # updating scrollers
+        #self.cnv1.configure(scrollregion = self.cnv1.bbox('all'))  
+
+
+    def LoadPSFImage(self):
+        """Loading PSF from file"""
+        if not hasattr(self,'beadImgPath') :
+            showerror("Error","Select bead image first!")
+            return
+        elif self.beadImgPath == "":
+            showerror("Error","Bead image path is empty!")
+            return
+
+        try:
+            self.imgBeadRaw = Image.open(self.beadImgPath)
+            print("Number of frames: ", self.imgBeadRaw.n_frames)
+            frameNumber = int( self.imgBeadRaw.n_frames / 2)
+            print("Frame number for output: ", frameNumber)
+            # setting imgTmp to desired number
+            self.imgBeadRaw.seek(frameNumber)
+            # preparing image for canvas from desired frame
+            self.cnvBeadImg = ImageTk.PhotoImage(self.imgBeadRaw)
+        except:
+            showerror("Error","Can't read file.")
+            return
+        # replacing image on the canvas
+        self.cnvImg.create_image(0, 0, image = self.cnvBeadImg, anchor = NW)
+        # updating scrollers
+        #self.cnv1.configure(scrollregion = self.cnv1.bbox('all'))  
+
+    def DeconvolveIt(self):
+        txt_beadSizenm = self.beadSizeWgt.get()
+        txt_resolutionXY = self.beadImXYResWgt.get()
+        txt_resolutionZ = self.beadImZResWgt.get()
+        txt_itNum = self.iterNumWgt.get()
+        print(txt_beadSizenm,txt_resolutionXY,txt_resolutionZ)
+        if not hasattr(self,'imgBeadRaw'):
+            showerror("Error","No bead image loaded.")
+        elif txt_beadSizenm == '' or txt_resolutionXY == ''or txt_resolutionZ == '':
+            showerror("Error","Empty Bead size or resolution value.")
+        elif txt_beadSizenm == '0' or txt_resolutionXY == '0' or txt_resolutionZ == '0':
+            showerror("Error","Zero Bead size or resolution value.")
+        elif txt_itNum == '0' or txt_itNum == '':
+            txt_itNum = '10'  # default iteration number
+        else:
+            try:
+                self.beadSizenm = float(txt_beadSizenm)
+                self.resolutionXY = float(txt_resolutionXY)
+                self.resolutionZ = float(txt_resolutionZ)
+                self.beadSizepx = int(self.beadSizenm / self.resolutionXY / 2)
+                self.itNum = int(txt_itNum)
+                self.imArr1 = imtrans.PaddingImg(self.imgBeadRaw)
+                print("shapes:",self.imArr1.shape[0],self.imArr1.shape[1],self.imArr1.shape[2])
+                self.imgDecon = decon.MaxLikelhoodEstimationFFT_3D(self.imArr1, self.imgPSF, self.itNum)
+            except:
+                showerror("Error. Can't finish convolution properly.")
+                return
+#            self.PlotBead3D(self.imgPSF)
+            self.figDec, axs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
+            self.figDec.suptitle("Deconvolved")
+            axs[0].pcolormesh(self.imgDecon[self.imgDecon.shape[0] // 2,:,:],cmap=cm.jet)
+            axs[1].pcolormesh(self.imgDecon[:,self.imgDecon.shape[0] // 2,:],cmap=cm.jet)
+            axs[2].pcolormesh(self.imgDecon[:,:,self.imgDecon.shape[0] // 2],cmap=cm.jet)
+            # plt.show()
+            # Instead of plt.show creating Tkwidget from figure
+            self.figDec_canvas_agg = FigureCanvasTkAgg(self.figDec,self.cnvDecon)
+            self.figDec_canvas_agg.get_tk_widget().grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
 
 
 if __name__ == '__main__':
