@@ -345,12 +345,18 @@ class MainWindowGUI(Tk):
             except:
                 showerror("Error. Can't finish convolution properly.")
                 return
-#            self.PlotBead3D(self.imgPSF)
+#            self.PlotBead3D(self.imgPSF) 
             self.figDec, axs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
             self.figDec.suptitle("Deconvolved")
             axs[0].pcolormesh(self.imgDecon[self.imgDecon.shape[0] // 2,:,:],cmap=cm.jet)
-            axs[1].pcolormesh(self.imgDecon[:,self.imgDecon.shape[0] // 2,:],cmap=cm.jet)
-            axs[2].pcolormesh(self.imgDecon[:,:,self.imgDecon.shape[0] // 2],cmap=cm.jet)
+            dN = self.imgDecon.shape[0]
+            xrange = np.arange(0,dN) 
+            print("Decon",self.imgDecon[dN // 2,:,dN // 2])
+            print("Raw",self.imgBeadRaw[dN // 2,:,dN // 2])
+            axs[1].plot(xrange,self.imgBeadRaw[dN // 2,:,dN // 2],'b.-')
+            axs[1].plot(xrange,self.imgDecon[dN // 2,:,dN // 2],'r.-')
+#            axs[1].pcolormesh(self.imgDecon[:,self.imgDecon.shape[0] // 2,:],cmap=cm.jet)
+            axs[2].pcolormesh(self.imgDecon[:,:, dN // 2],cmap=cm.jet)
             # plt.show()
             # Instead of plt.show creating Tkwidget from figure
             self.figDec_canvas_agg = FigureCanvasTkAgg(self.figDec,self.cnvDecon)
