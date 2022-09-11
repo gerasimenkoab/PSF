@@ -75,7 +75,7 @@ class MainWindowGUI(Tk):
         Button(text = 'Save PSF multi-file',command=self.SavePSFMulti).grid(row=10, column=1)
         Button(text = 'Save PSF single-file',command=self.SavePSFSingle).grid(row=10, column=2)
 
-        Button(text = 'Load Image',command = quit).grid(row=11,column=1)
+        Button(text = 'Load Image',command = self.LoadCompareImageFile).grid(row=11,column=1)
         Button(text = 'Load PSF', command = self.LoadPSFImageFile).grid(row=11,column=2)
         Button(text = 'Deconvolve',command = self.DeconvolveIt).grid(row=11,column=3)
         Button(text = 'EXIT!',command = quit).grid(row=11,column=6)
@@ -131,6 +131,17 @@ class MainWindowGUI(Tk):
             return
         # updating scrollers
         #self.cnv1.configure(scrollregion = self.cnv1.bbox('all'))  
+
+
+    def LoadCompareImageFile(self):
+        """Loading raw bead photo from file at self.beadImgPath"""
+        beadCompPath = askopenfilename(title = 'Load Beads Photo')
+        try:
+            self.imgBeadComp = fio.ReadTiffStackFileTFF(beadCompPath)
+        except:
+            showerror("Load compare image: Error","Can't read file.")
+            return
+
 
 
 
@@ -364,6 +375,8 @@ class MainWindowGUI(Tk):
             xrange = np.arange(0,dN) 
             ax.plot(xrange,self.imgBeadRaw[dN // 2,:,dN // 2],'b.-')
             ax.plot(xrange,self.imgDecon[dN // 2,:,dN // 2],'r.-')
+            if hasattr(self,'imgBeadComp') and self.imgBeadComp.shape[1] == self.imgDecon.shape[1] :
+                ax.plot(xrange,self.imgBeadComp[:,dN // 2],'g.-')
 
             top= Toplevel(self)
             top.geometry("300x300")
