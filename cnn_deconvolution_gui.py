@@ -26,10 +26,10 @@ TODO:
 - Maybe make more variable settings to prediction?
 """
 
-class CNNDeconvGUI(Tk):
+class CNNDeconvGUI(Toplevel):
 
-    def __init__(self, master = None, wwidth=600, wheight = 1800):
-        super().__init__()
+    def __init__(self, parent):
+        super().__init__(parent)
         self.deblurPredictor = DeblurPredictor()
         self.imgBeadRawLoad = FALSE
 
@@ -41,40 +41,41 @@ class CNNDeconvGUI(Tk):
         Label(self,text="Load image").grid(row=1,column = 1)
         self.imgPathW = Entry(self, width = 25, bg = 'white', fg = 'black')
         self.imgPathW.grid(row = 2, column = 1, sticky = 'w')
-        Button(text = 'Select image', command = self.SelectImage).grid(row=2,column=2)
-        Button(text = 'Load image', command = self.LoadImageFile).grid(row=2,column=3)
+        Button(self, text = 'Select image', command = self.SelectImage).grid(row=2,column=2)
+        Button(self, text = 'Load image', command = self.LoadImageFile).grid(row=2,column=3)
 
         # Image preprocessing block
         Label(self,text="Preprocess image").grid(row=3,column = 1)
         self.isNeedMaximize  = IntVar()
         self.isNeedGausBlur = IntVar()
-        self.isNeedMaximizeCB = Checkbutton(text="Maximize intensity", variable=self.isNeedMaximize)
-        self.isNeedGausBlurCB = Checkbutton(text="Make Gaus blur", variable=self.isNeedGausBlur)
+        self.isNeedMaximizeCB = Checkbutton(self, text="Maximize intensity", variable=self.isNeedMaximize)
+        self.isNeedGausBlurCB = Checkbutton(self, text="Make Gaus blur", variable=self.isNeedGausBlur)
         self.isNeedMaximizeCB.grid(row=4, column=1)
         self.isNeedGausBlurCB.grid(row=5, column=1)
         self.gausRadiusSB = Spinbox(self, width = 18, bg = 'white', fg = 'black', from_= 1, to = 4)
         self.gausRadiusSB.grid(row=5, column=2)
-        Button(text = 'Make preprocessing', command = self.MakeImagePreprocessing).grid(row=5,column=3)
+        Button(self, text = 'Make preprocessing', command = self.MakeImagePreprocessing).grid(row=5,column=3)
 
         # Model choise block
         Label(self,text="CNN model params").grid(row=6,column = 1)
         self.modelCNNPathW = Entry(self, width = 25, bg = 'white', fg = 'black')
         self.modelCNNPathW.grid(row = 7, column = 1, sticky = 'w')
-        Button(text = 'Select model', command = self.SelectModel).grid(row=7,column=2)
-        Button(text = 'Load model', command = self.LoadModel).grid(row=7,column=3)
+        Button(self, text = 'Select model', command = self.SelectModel).grid(row=7,column=2)
+        Button(self, text = 'Load model', command = self.LoadModel).grid(row=7,column=3)
 
         # Post-processing block
         Label(self,text="Postprocessing & debluring").grid(row=8,column = 1)
-        Button(text = 'Make deblur',command = self.Deblur).grid(row=8,column=3)
+        Button(self, text = 'Make deblur',command = self.Deblur).grid(row=8,column=3)
 
         # Save result block
-        Label(text="Save results").grid(row = 9,column = 1)
+        Label(self, text="Save results").grid(row = 9,column = 1)
+        Label(self,text="File name:").grid(row=10,column = 1)
         self.resultNameW = Entry(self, width = 25, bg = 'white', fg = 'black')
-        self.resultNameW.grid(row = 10, column = 1, sticky = 'w')
-        Button(text = 'Save result',command = self.SaveResult).grid(row=10,column=3)
+        self.resultNameW.grid(row = 10, column = 2, sticky = 'w')
+        Button(self, text = 'Save result',command = self.SaveResult).grid(row=10,column=3)
         
         # Exit
-        Button(text = 'EXIT!',command = quit).grid(row=11,column=6)
+        Button(self, text = 'EXIT!',command = quit).grid(row=11,column=6)
 
         # Graphics
         Label(self, text="").grid(row = 1, column = 4)         # blanc insert

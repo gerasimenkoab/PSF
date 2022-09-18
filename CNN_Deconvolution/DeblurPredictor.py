@@ -10,8 +10,8 @@ class DeblurPredictor:
     # constructor
     def __init__(self):
         # CONSTANTS
-        self.CHUNK_SIZE = 48
-        self.OFFSET_SIZE = 8
+        self.CHUNK_SIZE = 32
+        self.OFFSET_SIZE = 16
 
         self.isInited = False
         return
