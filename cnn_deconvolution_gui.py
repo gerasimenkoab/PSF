@@ -26,7 +26,6 @@ TODO:
 - Maybe add 2D deconvolution?
 - Maybe make more variable settings to prediction?
 
-- Implement choose between CPU and GPU devices
 - Implement progress bar while deblur
 """
 
