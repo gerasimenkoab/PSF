@@ -25,8 +25,6 @@ import numpy as np
 TODO:
 - Maybe add 2D deconvolution?
 - Maybe make more variable settings to prediction?
-
-- Implement progress bar while deblur
 """
 
 class CNNDeconvGUI(Toplevel):
@@ -71,15 +69,15 @@ class CNNDeconvGUI(Toplevel):
         self.allDevicesList = self.InitAllDevicesInTF()
         self.allDevicesCb = Combobox(self, values = self.allDevicesList)
         self.allDevicesCb.current(0)
-        self.allDevicesCb.grid(row=8, column=2)
-        Button(self, text = 'Make deblur',command = self.Deblur).grid(row=8,column=3)
+        self.allDevicesCb.grid(row=9, column=1)
+        Button(self, text = 'Make deblur',command = self.Deblur).grid(row=9,column=3)
 
         # Save result block
-        Label(self, text="Save results").grid(row = 9,column = 1)
-        Label(self,text="File name:").grid(row=10,column = 1)
+        Label(self, text="Save results").grid(row = 10,column = 1)
+        Label(self,text="File name:").grid(row=11,column = 1)
         self.resultNameW = Entry(self, width = 25, bg = 'white', fg = 'black')
-        self.resultNameW.grid(row = 10, column = 2, sticky = 'w')
-        Button(self, text = 'Save result',command = self.SaveResult).grid(row=10,column=3)
+        self.resultNameW.grid(row = 11, column = 2, sticky = 'w')
+        Button(self, text = 'Save result',command = self.SaveResult).grid(row=11,column=3)
         
         # Exit
         Button(self, text = 'EXIT!',command = quit).grid(row=11,column=6)
@@ -103,7 +101,7 @@ class CNNDeconvGUI(Toplevel):
         #return cpus_names + gpus_names
         devices = ['/device:CPU:0']
         if len(tf.config.list_physical_devices('GPU')) > 0:
-            devices += ["/GPU:0"]
+            devices = ["/GPU:0"] + devices
         return devices
 
     # Methods, which provides graphics plotting
@@ -135,8 +133,8 @@ class CNNDeconvGUI(Toplevel):
         if scale_borders[1] == 1000:
             scale_borders[1] = max(np.amax(planeRow), np.amax(planeLayer), np.amax(planeCol))
 
-        plt_width = (np.array(img).shape[0] + np.array(img).shape[2]) / 25
-        plt_height = (np.array(img).shape[0] + np.array(img).shape[1]) / 25
+        plt_width = 4#(np.array(img).shape[0] + np.array(img).shape[2]) / 25
+        plt_height = 4#(np.array(img).shape[0] + np.array(img).shape[1]) / 25
         fig = plt.figure(figsize=(plt_width, plt_height))
         fig.suptitle(subtitle)
 
@@ -257,7 +255,7 @@ class CNNDeconvGUI(Toplevel):
             return
         try:
             with tf.device(self.allDevicesCb.get()):
-                self.debluredImg = self.deblurPredictor.makePrediction(self.imgPreproc)
+                self.debluredImg = self.deblurPredictor.makePrediction(self.imgPreproc, self)
             
                 fig, axs = self.GenerateFigure(self.debluredImg, "Deblured", [self.layerPlot, self.rowPlot, self.colPlot], [0, 255])
             

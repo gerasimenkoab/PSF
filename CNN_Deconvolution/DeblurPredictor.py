@@ -1,5 +1,8 @@
 import numpy as np
 
+import tkinter as tk
+import tkinter.ttk as ttk
+
 from CNN_Deconvolution.DeblurCNNModelMini3D import DeblurCNNModelMini3D
 from CNN_Deconvolution.BigImageManager import BigImageManager
 
@@ -10,15 +13,19 @@ class DeblurPredictor:
     # constructor
     def __init__(self):
         # CONSTANTS
-        self.CHUNK_SIZE = 32
-        self.OFFSET_SIZE = 16
+        self.CHUNK_SIZE = 64
+        self.OFFSET_SIZE = 32
 
         self.isInited = False
         return
 
     # Method which provides neural network model initialization to predict
     def initPredictModel(self, layers, rows, cols, modelPath):
-        self.model = DeblurCNNModelMini3D.ModelBuilder(input_shape=(layers, rows, cols, 1))
+        _layers = layers 
+        _rows = self.CHUNK_SIZE + 2 * self.OFFSET_SIZE #rows
+        _cols = self.CHUNK_SIZE + 2 * self.OFFSET_SIZE #cols
+
+        self.model = DeblurCNNModelMini3D.ModelBuilder(input_shape=(_layers, _rows, _cols, 1))
         self.model.load_weights(modelPath)
         self.isInited = True
         return
@@ -33,7 +40,7 @@ class DeblurPredictor:
         return result
 
     # Method which provides image's prediction
-    def makePrediction(self, img):
+    def makePrediction(self, img, window):
         if not self.isInited:
             raise Exception("Model isnt inited!")
 
@@ -44,6 +51,10 @@ class DeblurPredictor:
         # make chunks
         chunksMaker = BigImageManager(imgToPredict, self.CHUNK_SIZE, self.OFFSET_SIZE)
         chunks = chunksMaker.SeparateInChunks()
+
+        # make graphic indication progressbar
+        pb = ttk.Progressbar(window, orient='horizontal', mode='determinate', maximum=len(chunks), value=0)
+        pb.grid(row=9, column=2)
 
         results = []
         for chunk in chunks:
@@ -56,9 +67,14 @@ class DeblurPredictor:
             chunkToPredict.chunkData = chunkToPredict.chunkData.reshape(chunk.dataLayers, chunk.dataRows, chunk.dataCols)
             
             results.append(chunkToPredict)
+            pb['value'] = len(results)
+            window.update()
 
         # Init back to save
         result = chunksMaker.ConcatenateChunksIntoImage(results)
         result = self.makePostprocessing(result, result.shape[0], result.shape[1], result.shape[2])
         result = (result * 255).astype('uint8')
+
+        # destroy progress bar
+        pb.grid_remove()
         return result

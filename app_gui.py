@@ -9,6 +9,7 @@ TODO:
 - Close all TODO in cnn_deconvloution_gui.py
 - Close all TODO in psf_extractor_gui.py
 
+- Maybe make some img label on start window?
 - Add button "About app" with authors
 """
 
@@ -30,6 +31,18 @@ class MainWindowGUI(Tk):
         Label(self, text="").grid(row = 2, column = 6)         # blanc insert
 
         Label(self, text = "").grid(row = 3,column = 1)        # blanc insert
+
+        # add menu
+        m = Menu(self)
+        self.config(menu=m)
+        
+        # add buttons
+        m.add_command(label="Authors", command=self.Authors)
+        m.add_command(label="Exit", command=quit)
+        return
+
+    def Authors(self):
+        return
 
     def LaunchCNNDeconvolution(self):
         deconvolver = CNNDeconvGUI(self)
