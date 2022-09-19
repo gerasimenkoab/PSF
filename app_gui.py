@@ -10,7 +10,7 @@ TODO:
 - Close all TODO in psf_extractor_gui.py
 
 - Maybe make some img label on start window?
-- Add button "About app" with authors
+- Add button "Authors" with authors
 """
 
 class MainWindowGUI(Tk):
@@ -42,6 +42,23 @@ class MainWindowGUI(Tk):
         return
 
     def Authors(self):
+        tk = Toplevel()
+        Label(tk, text="").grid(row=0, column=0)
+        Label(tk, text="AUTHORS").grid(row=1, column=5)
+        Label(tk, text="").grid(row=2, column=0)
+
+        Label(tk, text="Chukanov V.").grid(row=3, column=1)
+        Label(tk, text="").grid(row=3, column=2)
+        Label(tk, text="Pchitskaya E.").grid(row=3, column=3)
+        Label(tk, text="").grid(row=3, column=4)
+
+        Label(tk, text="").grid(row=3, column=6)
+        Label(tk, text="Gerasimenko A.").grid(row=3, column=7)
+        Label(tk, text="").grid(row=3, column=8)
+        Label(tk, text="Sachuk A.").grid(row=3, column=9)
+        Label(tk, text="").grid(row=3, column=10)
+        
+        Label(tk, text="").grid(row=4, column=0)
         return
 
     def LaunchCNNDeconvolution(self):
