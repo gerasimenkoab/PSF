@@ -4,6 +4,14 @@ from cnn_deconvolution_gui import *
 from app_gui import *
 from psf_extractor_gui import PSFExtractorGUI
 
+"""
+TODO:
+- Close all TODO in cnn_deconvloution_gui.py
+- Close all TODO in psf_extractor_gui.py
+
+- Add button "About app" with authors
+"""
+
 class MainWindowGUI(Tk):
 
     def __init__(self, master = None, wwidth=800, wheight = 2000):

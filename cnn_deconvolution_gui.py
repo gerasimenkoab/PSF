@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter.messagebox import showerror, showinfo
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import askopenfilenames
+from tkinter.ttk import Combobox
 from PIL import ImageTk, Image
 
 import os.path
@@ -16,14 +17,17 @@ import file_inout as fio
 import img_transform as imtrans
 from CNN_Deconvolution.DeblurPredictor import DeblurPredictor
 
+import tensorflow as tf
+
 import numpy as np
 
 """
 TODO:
-- Maybe make add 2D deconvolution?
-- Implement choose between CPU and GPU
-- Implement progress bar while deblur
+- Maybe add 2D deconvolution?
 - Maybe make more variable settings to prediction?
+
+- Implement choose between CPU and GPU devices
+- Implement progress bar while deblur
 """
 
 class CNNDeconvGUI(Toplevel):
@@ -65,6 +69,10 @@ class CNNDeconvGUI(Toplevel):
 
         # Post-processing block
         Label(self,text="Postprocessing & debluring").grid(row=8,column = 1)
+        self.allDevicesList = self.InitAllDevicesInTF()
+        self.allDevicesCb = Combobox(self, values = self.allDevicesList)
+        self.allDevicesCb.current(0)
+        self.allDevicesCb.grid(row=8, column=2)
         Button(self, text = 'Make deblur',command = self.Deblur).grid(row=8,column=3)
 
         # Save result block
@@ -85,8 +93,19 @@ class CNNDeconvGUI(Toplevel):
         self.afterImg = Canvas(self,  width = 400, height = 400, bg = 'white')
         self.afterImg.grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
         
-        Label(self, text = "").grid(row = 12,column = 6) #blanc insert
+        Label(self, text = "").grid(row = 12,column = 6)       # blanc insert
         return
+
+    def InitAllDevicesInTF(self):
+        #cpus = tf.config.list_physical_devices('CPU')
+        #cpus_names = [cpu.name for cpu in cpus]
+        #gpus = tf.config.list_physical_devices('GPU')
+        #gpus_names = [gpu.name for gpu in gpus]
+        #return cpus_names + gpus_names
+        devices = ['/device:CPU:0']
+        if len(tf.config.list_physical_devices('GPU')) > 0:
+            devices += ["/GPU:0"]
+        return devices
 
     # Methods, which provides graphics plotting
     def getRowPlane(self, img, row):
@@ -238,12 +257,14 @@ class CNNDeconvGUI(Toplevel):
             showerror("Error", "Load model first!")
             return
         try:
-            self.debluredImg = self.deblurPredictor.makePrediction(self.imgPreproc)
-            fig, axs = self.GenerateFigure(self.debluredImg, "Deblured", [self.layerPlot, self.rowPlot, self.colPlot], [0, 255])
+            with tf.device(self.allDevicesCb.get()):
+                self.debluredImg = self.deblurPredictor.makePrediction(self.imgPreproc)
             
-            # Instead of plt.show creating Tkwidget from figure
-            self.figIMG_canvas_agg = FigureCanvasTkAgg(fig, self.afterImg)
-            self.figIMG_canvas_agg.get_tk_widget().grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
+                fig, axs = self.GenerateFigure(self.debluredImg, "Deblured", [self.layerPlot, self.rowPlot, self.colPlot], [0, 255])
+            
+                # Instead of plt.show creating Tkwidget from figure
+                self.figIMG_canvas_agg = FigureCanvasTkAgg(fig, self.afterImg)
+                self.figIMG_canvas_agg.get_tk_widget().grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
         except Exception as e:
             print(e)
             showerror("LoadCNNModelFile: Error","Bad model path.")
