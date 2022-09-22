@@ -1,8 +1,8 @@
 from tkinter import *
-from tkinter.messagebox import showerror, showinfo
+from tkinter.messagebox import showerror, showinfo, askokcancel
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import askopenfilenames
-from tkinter.ttk import Combobox
+from tkinter.ttk import Combobox, Separator
 from PIL import ImageTk, Image
 
 import os.path
@@ -25,25 +25,30 @@ import numpy as np
 TODO:
 - Maybe add 2D deconvolution?
 - Maybe make more variable settings to prediction?
+
+- Make autosave (or warning) before exit
 """
 
 class CNNDeconvGUI(Toplevel):
 
     def __init__(self, parent):
         super().__init__(parent)
+        # CONSTANTS BLOCK
+        self.CNN_MODEL_PATH = "./CNN_Deconvolution/models/3d_gaus_blur.h5"
+
+        # init block
         self.deblurPredictor = DeblurPredictor()
         self.imgBeadRawLoad = FALSE
 
         self.title("PSF-Extractor: neural deconvolution window")
         self.resizable(False, False)
         Label(self, text="").grid(row = 0, column = 0)         # blanc insert
-        
+
         # Load image block
         Label(self,text="Load image").grid(row=1,column = 1)
-        self.imgPathW = Entry(self, width = 25, bg = 'white', fg = 'black')
-        self.imgPathW.grid(row = 2, column = 1, sticky = 'w')
-        Button(self, text = 'Select image', command = self.SelectImage).grid(row=2,column=2)
-        Button(self, text = 'Load image', command = self.LoadImageFile).grid(row=2,column=3)
+        Button(self, text = 'Load image', command = self.LoadImageFile).grid(row=1,column=3)
+
+        Separator(self, orient='horizontal').grid(row=2, column=1, ipadx=200, pady=10, columnspan=3)
 
         # Image preprocessing block
         Label(self,text="Preprocess image").grid(row=3,column = 1)
@@ -57,20 +62,19 @@ class CNNDeconvGUI(Toplevel):
         self.gausRadiusSB.grid(row=5, column=2)
         Button(self, text = 'Make preprocessing', command = self.MakeImagePreprocessing).grid(row=5,column=3)
 
-        # Model choise block
-        Label(self,text="CNN model params").grid(row=6,column = 1)
-        self.modelCNNPathW = Entry(self, width = 25, bg = 'white', fg = 'black')
-        self.modelCNNPathW.grid(row = 7, column = 1, sticky = 'w')
-        Button(self, text = 'Select model', command = self.SelectModel).grid(row=7,column=2)
-        Button(self, text = 'Load model', command = self.LoadModel).grid(row=7,column=3)
+        
+        Separator(self, orient='horizontal').grid(row=6, column=1, ipadx=200, pady=10, columnspan=3)
 
         # Post-processing block
-        Label(self,text="Postprocessing & debluring").grid(row=8,column = 1)
+        Label(self,text="Postprocessing & debluring").grid(row=7,column = 1)
         self.allDevicesList = self.InitAllDevicesInTF()
         self.allDevicesCb = Combobox(self, values = self.allDevicesList)
-        self.allDevicesCb.current(0)
-        self.allDevicesCb.grid(row=9, column=1)
-        Button(self, text = 'Make deblur',command = self.Deblur).grid(row=9,column=3)
+        self.allDevicesCb.current(len(self.allDevicesList) - 1)
+        self.allDevicesCb.grid(row=8, column=1)
+        Button(self, text = 'Make deblur',command = self.Deblur).grid(row=8,column=3)
+
+
+        Separator(self, orient='horizontal').grid(row=9, column=1, ipadx=200, pady=10, columnspan=3)
 
         # Save result block
         Label(self, text="Save results").grid(row = 10,column = 1)
@@ -79,30 +83,22 @@ class CNNDeconvGUI(Toplevel):
         self.resultNameW.grid(row = 11, column = 2, sticky = 'w')
         Button(self, text = 'Save result',command = self.SaveResult).grid(row=11,column=3)
         
-        # Exit
-        Button(self, text = 'EXIT!',command = quit).grid(row=11,column=6)
-
         # Graphics
         Label(self, text="").grid(row = 1, column = 4)         # blanc insert
 
         self.beforeImg = Canvas(self,  width = 400, height = 400, bg = 'white')
-        self.beforeImg.grid(row = 1,column=5, rowspan=10,sticky=(N,E,S,W))
+        self.beforeImg.grid(row = 1,column=5, rowspan=11,sticky=(N,E,S,W))
         self.afterImg = Canvas(self,  width = 400, height = 400, bg = 'white')
-        self.afterImg.grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
+        self.afterImg.grid(row = 1,column=6, rowspan=11,sticky=(N,E,S,W))
         
         Label(self, text = "").grid(row = 12,column = 6)       # blanc insert
         return
 
     def InitAllDevicesInTF(self):
-        #cpus = tf.config.list_physical_devices('CPU')
-        #cpus_names = [cpu.name for cpu in cpus]
-        #gpus = tf.config.list_physical_devices('GPU')
-        #gpus_names = [gpu.name for gpu in gpus]
-        #return cpus_names + gpus_names
-        devices = ['/device:CPU:0']
-        if len(tf.config.list_physical_devices('GPU')) > 0:
-            devices = ["/GPU:0"] + devices
-        return devices
+        devices = tf.config.list_logical_devices()
+        devices_names = [device.name for device in devices]
+        return devices_names
+        
 
     # Methods, which provides graphics plotting
     def getRowPlane(self, img, row):
@@ -160,25 +156,16 @@ class CNNDeconvGUI(Toplevel):
         cbar = grid.cbar_axes[0].colorbar(im)
         return fig, grid
 
-    # Method which provides image selecting from dialog window
-    def SelectImage(self):
-        """Selecting bead file"""
-        self.imgPath = askopenfilename(title = 'Load image')
-        self.imgPathW.insert(0,self.imgPath)
-        return
-
     # Method which provides image loading in memory
     def LoadImageFile(self):
         """Loading raw bead photo from file at self.beadImgPath"""
-        if not hasattr(self,'imgPathW') :
-            showerror("Error","Select bead image first!")
-            return
-        elif self.imgPath == "":
-            showerror("Error","Bead image path empty!")
-            return
         try:
-            print("Open path: ", self.imgPath)
-            self.imgRaw = fio.ReadTiffStackFileTFF(self.imgPath)
+            imgPath = askopenfilename(title = 'Load image')
+            if imgPath == "":
+                return
+
+            print("Open path: ", imgPath)
+            self.imgRaw = fio.ReadTiffStackFileTFF(imgPath)
             self.imgPreproc = self.imgRaw.copy()
 
             result = np.where(self.imgPreproc == np.amax(self.imgPreproc))
@@ -191,7 +178,7 @@ class CNNDeconvGUI(Toplevel):
 
         except Exception as e:
             print(e)
-            showerror("LoadBeadImageFile: Error","Can't read file.")
+            showerror("LoadBeadImageFile: Error","Bad file name or unsupported (yet) image format")
             return
 
     # Method which provides image preprocessing and plotting
@@ -219,40 +206,20 @@ class CNNDeconvGUI(Toplevel):
         self.figIMG_canvas_agg.get_tk_widget().grid(row = 1,column=5, rowspan=10,sticky=(N,E,S,W))
         return
 
-    # Methods which provides opening dialog window to set model
-    def SelectModel(self):
-        """Selecting bead file"""
-        self.modelPath = askopenfilename(title = 'Load model')
-        self.modelCNNPathW.insert(0,self.modelPath)
-        return
-
-    # Methods which provides model loading
-    def LoadModel(self):
-        """Loading raw bead photo from file at self.beadImgPath"""
-        if not hasattr(self,'modelPath') :
-            showerror("Error","Select CNN model first!")
-            return
-        elif self.modelPath == "":
-            showerror("Error","CNN model path empty!")
-            return
-        elif not hasattr(self, 'imgPreproc'):
-            showerror("Error","Load image first!")
-            return
-        try:
-            self.deblurPredictor.initPredictModel(self.imgPreproc.shape[0], self.imgPreproc.shape[1], self.imgPreproc.shape[2], self.modelPath)
-        except Exception as e:
-            print(e)
-            showerror("LoadCNNModelFile: Error","Bad model path.")
-            return
-
     # Deblur method
     def Deblur(self):
         if not hasattr(self, 'imgPreproc'):
             showerror("Error","Load image first!")
             return
-        elif not self.deblurPredictor.isInited:
-            showerror("Error", "Load model first!")
+
+        try:
+            if not self.deblurPredictor.isInited:
+                self.deblurPredictor.initPredictModel(self.imgPreproc.shape[0], self.imgPreproc.shape[1], self.imgPreproc.shape[2], self.CNN_MODEL_PATH)
+        except Exception as e:
+            print(e)
+            showerror("Deblur-Error","No '{}' CNN model!".format(self.CNN_MODEL_PATH))
             return
+        
         try:
             with tf.device(self.allDevicesCb.get()):
                 self.debluredImg = self.deblurPredictor.makePrediction(self.imgPreproc, self)
@@ -264,7 +231,7 @@ class CNNDeconvGUI(Toplevel):
                 self.figIMG_canvas_agg.get_tk_widget().grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
         except Exception as e:
             print(e)
-            showerror("LoadCNNModelFile: Error","Bad model path.")
+            showerror("LoadCNNModelFile: Error", "Smthing goes wrong!")
             return
 
     def SaveResult(self):
@@ -294,6 +261,6 @@ class CNNDeconvGUI(Toplevel):
 
 
 if __name__ == '__main__':
-      rootWin = CNNDeconvGUI()
-      rootWin.mainloop()
+    rootWin = CNNDeconvGUI()
+    rootWin.mainloop()
 

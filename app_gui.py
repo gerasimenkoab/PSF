@@ -63,6 +63,12 @@ class MainWindowGUI(Tk):
 
     def LaunchCNNDeconvolution(self):
         deconvolver = CNNDeconvGUI(self)
+
+        def on_closing():
+            if askokcancel("Quit", "Do you want to quit?"):
+                deconvolver.destroy()
+        
+        deconvolver.protocol("WM_DELETE_WINDOW", on_closing)
         deconvolver.grab_set()
         return
 

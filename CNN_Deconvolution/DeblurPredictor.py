@@ -54,11 +54,11 @@ class DeblurPredictor:
 
         # make graphic indication progressbar
         pb = ttk.Progressbar(window, orient='horizontal', mode='determinate', maximum=len(chunks), value=0)
-        pb.grid(row=9, column=2)
+        pb.grid(row=8, column=2)
 
         results = []
         for chunk in chunks:
-            chunkToPredict = copy.copy(chunk)
+            chunkToPredict = chunk
 
             chunkToPredict.chunkData = chunk.chunkData.reshape(1, chunk.dataLayers, chunk.dataRows, chunk.dataCols, 1)
 
