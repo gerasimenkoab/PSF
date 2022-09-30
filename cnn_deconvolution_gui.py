@@ -23,10 +23,6 @@ import numpy as np
 
 """
 TODO:
-- Maybe add 2D deconvolution?
-- Maybe make more variable settings to prediction?
-
-- Make autosave (or warning) before exit
 """
 
 class CNNDeconvGUI(Toplevel):
@@ -67,9 +63,9 @@ class CNNDeconvGUI(Toplevel):
 
         # Post-processing block
         Label(self,text="Postprocessing & debluring").grid(row=7,column = 1)
-        self.allDevicesList = self.InitAllDevicesInTF()
-        self.allDevicesCb = Combobox(self, values = self.allDevicesList)
-        self.allDevicesCb.current(len(self.allDevicesList) - 1)
+        self.allDevicesList, self.allDevicesNamesList = self.InitAllDevicesInTF()
+        self.allDevicesCb = Combobox(self, values = self.allDevicesNamesList)
+        self.allDevicesCb.current(len(self.allDevicesNamesList) - 1)
         self.allDevicesCb.grid(row=8, column=1)
         Button(self, text = 'Make deblur',command = self.Deblur).grid(row=8,column=3)
 
@@ -95,9 +91,18 @@ class CNNDeconvGUI(Toplevel):
         return
 
     def InitAllDevicesInTF(self):
-        devices = tf.config.list_logical_devices()
-        devices_names = [device.name for device in devices]
-        return devices_names
+        devices_l = tf.config.list_logical_devices()
+        devices_names = [device_l.name for device_l in devices_l]
+
+        devices = tf.config.list_physical_devices()
+        device_readable_names = []
+        for device in devices:
+            if device.device_type == 'CPU':
+                device_readable_names.append('CPU')    
+            else:
+                details = tf.config.experimental.get_device_details(device)
+                device_readable_names.append(details.get('device_name'))
+        return devices_names, device_readable_names
         
 
     # Methods, which provides graphics plotting
@@ -221,7 +226,8 @@ class CNNDeconvGUI(Toplevel):
             return
         
         try:
-            with tf.device(self.allDevicesCb.get()):
+            device = self.allDevicesList[self.allDevicesCb.current()]
+            with tf.device(device):
                 self.debluredImg = self.deblurPredictor.makePrediction(self.imgPreproc, self)
             
                 fig, axs = self.GenerateFigure(self.debluredImg, "Deblured", [self.layerPlot, self.rowPlot, self.colPlot], [0, 255])
