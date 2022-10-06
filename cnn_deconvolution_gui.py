@@ -31,6 +31,7 @@ class CNNDeconvGUI(Toplevel):
         super().__init__(parent)
         # CONSTANTS BLOCK
         self.CNN_MODEL_PATH = "./CNN_Deconvolution/models/3d_gaus_blur.h5"
+        self.CNN_MODEL_PATH_2D = "./CNN_Deconvolution/models/3d_gaus_blur.h5"
 
         # init block
         self.deblurPredictor = DeblurPredictor()
@@ -44,50 +45,59 @@ class CNNDeconvGUI(Toplevel):
         Label(self,text="Load image").grid(row=1,column = 1)
         Button(self, text = 'Load image', command = self.LoadImageFile).grid(row=1,column=3)
 
-        Separator(self, orient='horizontal').grid(row=2, column=1, ipadx=200, pady=10, columnspan=3)
+        # Graphics settings block
+        Label(self, text="Resolution XY Z (nm/pxl):").grid(row = 2,column = 1)
+        self.beadImXYResWgt = Entry(self, width = 15, bg = 'white', fg = 'black')
+        self.beadImXYResWgt.grid(row = 2, column = 2, sticky = 'w')
+        self.beadImXYResWgt.insert(0, "0.022")
+        self.beadImZResWgt = Entry(self, width = 15, bg = 'white', fg = 'black')
+        self.beadImZResWgt.grid(row = 2, column = 3, sticky = 'w')
+        self.beadImZResWgt.insert(0, "0.1")
+
+        Separator(self, orient='horizontal').grid(row=3, column=1, ipadx=200, pady=10, columnspan=3)
 
         # Image preprocessing block
-        Label(self,text="Preprocess image").grid(row=3,column = 1)
+        Label(self,text="Preprocess image").grid(row=4,column = 1)
         self.isNeedMaximize  = IntVar()
         self.isNeedGausBlur = IntVar()
         self.isNeedMaximizeCB = Checkbutton(self, text="Maximize intensity", variable=self.isNeedMaximize)
         self.isNeedGausBlurCB = Checkbutton(self, text="Make Gaus blur", variable=self.isNeedGausBlur)
-        self.isNeedMaximizeCB.grid(row=4, column=1)
-        self.isNeedGausBlurCB.grid(row=5, column=1)
+        self.isNeedMaximizeCB.grid(row=5, column=1)
+        self.isNeedGausBlurCB.grid(row=6, column=1)
         self.gausRadiusSB = Spinbox(self, width = 18, bg = 'white', fg = 'black', from_= 1, to = 4)
-        self.gausRadiusSB.grid(row=5, column=2)
-        Button(self, text = 'Make preprocessing', command = self.MakeImagePreprocessing).grid(row=5,column=3)
+        self.gausRadiusSB.grid(row=6, column=2)
+        Button(self, text = 'Make preprocessing', command = self.MakeImagePreprocessing).grid(row=6,column=3)
 
         
-        Separator(self, orient='horizontal').grid(row=6, column=1, ipadx=200, pady=10, columnspan=3)
+        Separator(self, orient='horizontal').grid(row=7, column=1, ipadx=200, pady=10, columnspan=3)
 
         # Post-processing block
-        Label(self,text="Postprocessing & debluring").grid(row=7,column = 1)
+        Label(self,text="Postprocessing & debluring").grid(row=8,column = 1)
         self.allDevicesList, self.allDevicesNamesList = self.InitAllDevicesInTF()
         self.allDevicesCb = Combobox(self, values = self.allDevicesNamesList)
         self.allDevicesCb.current(len(self.allDevicesNamesList) - 1)
-        self.allDevicesCb.grid(row=8, column=1)
-        Button(self, text = 'Make deblur',command = self.Deblur).grid(row=8,column=3)
+        self.allDevicesCb.grid(row=9, column=1)
+        Button(self, text = 'Make deblur',command = self.Deblur).grid(row=9,column=3)
 
 
-        Separator(self, orient='horizontal').grid(row=9, column=1, ipadx=200, pady=10, columnspan=3)
+        Separator(self, orient='horizontal').grid(row=10, column=1, ipadx=200, pady=10, columnspan=3)
 
         # Save result block
-        Label(self, text="Save results").grid(row = 10,column = 1)
-        Label(self,text="File name:").grid(row=11,column = 1)
+        Label(self, text="Save results").grid(row = 11,column = 1)
+        Label(self,text="File name:").grid(row=12,column = 1)
         self.resultNameW = Entry(self, width = 25, bg = 'white', fg = 'black')
-        self.resultNameW.grid(row = 11, column = 2, sticky = 'w')
-        Button(self, text = 'Save result',command = self.SaveResult).grid(row=11,column=3)
+        self.resultNameW.grid(row = 12, column = 2, sticky = 'w')
+        Button(self, text = 'Save result',command = self.SaveResult).grid(row=12,column=3)
         
         # Graphics
         Label(self, text="").grid(row = 1, column = 4)         # blanc insert
 
         self.beforeImg = Canvas(self,  width = 400, height = 400, bg = 'white')
-        self.beforeImg.grid(row = 1,column=5, rowspan=11,sticky=(N,E,S,W))
+        self.beforeImg.grid(row = 1,column=5, rowspan=12,sticky=(N,E,S,W))
         self.afterImg = Canvas(self,  width = 400, height = 400, bg = 'white')
-        self.afterImg.grid(row = 1,column=6, rowspan=11,sticky=(N,E,S,W))
+        self.afterImg.grid(row = 1,column=6, rowspan=12,sticky=(N,E,S,W))
         
-        Label(self, text = "").grid(row = 12,column = 6)       # blanc insert
+        Label(self, text = "").grid(row = 13,column = 6)       # blanc insert
         return
 
     def InitAllDevicesInTF(self):
@@ -134,8 +144,24 @@ class CNNDeconvGUI(Toplevel):
         if scale_borders[1] == 1000:
             scale_borders[1] = max(np.amax(planeRow), np.amax(planeLayer), np.amax(planeCol))
 
-        plt_width = 4#(np.array(img).shape[0] + np.array(img).shape[2]) / 25
-        plt_height = 4#(np.array(img).shape[0] + np.array(img).shape[1]) / 25
+        # figure sizes
+        plt_width = 4
+        plt_height = 4
+
+        # images resolution for autoscaling
+        zResolution = 1
+        xyResolution = 1
+
+        try:
+            zResolution = float(self.beadImZResWgt.get())
+            xyResolution = float(self.beadImXYResWgt.get())
+
+            if zResolution <= 0 or xyResolution <= 0:
+                raise Exception("Negative resolution")
+            #print(zResolution, xyResolution)
+        except Exception as e:
+            showerror("Scaling error","The entered resolution values are incorrect; graphs will be displayed without scaling!")
+            
         fig = plt.figure(figsize=(plt_width, plt_height))
         fig.suptitle(subtitle)
 
@@ -143,19 +169,22 @@ class CNNDeconvGUI(Toplevel):
             fig, 111, nrows_ncols=(2, 2), axes_pad=0.05, cbar_mode='single', cbar_location='right', cbar_pad=0.1
         )
 
+        aspect_value_xz =  (img.shape[0] * zResolution) / (img.shape[2] * xyResolution)
+        aspect_value_yz = (img.shape[1] * xyResolution) / (img.shape[0] * zResolution)
+        #print(aspect_value_xz, aspect_value_yz)
         grid[0].set_axis_off()
 
         grid[1].set_axis_off()
-        grid[1].set_label("X-Y projection")
-        im = grid[1].imshow(planeRow,cmap=cm.jet, vmin=scale_borders[0], vmax=scale_borders[1])
+        grid[1].set_label("X-Z projection")
+        im = grid[1].imshow(planeRow,cmap=cm.jet, vmin=scale_borders[0], vmax=scale_borders[1], aspect=(aspect_value_xz))
 
         grid[2].set_axis_off()
         grid[2].set_label("Y-Z projection")
         planeCol = planeCol.transpose()
-        im = grid[2].imshow(planeCol,cmap=cm.jet, vmin=scale_borders[0], vmax=scale_borders[1])
+        im = grid[2].imshow(planeCol,cmap=cm.jet, vmin=scale_borders[0], vmax=scale_borders[1], aspect=aspect_value_yz)
 
         grid[3].set_axis_off()
-        grid[3].set_label("X-Z projection")
+        grid[3].set_label("X-Y projection")
         im = grid[3].imshow(planeLayer,cmap=cm.jet, vmin=scale_borders[0], vmax=scale_borders[1])
 
         cbar = grid.cbar_axes[0].colorbar(im)
