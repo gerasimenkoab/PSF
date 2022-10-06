@@ -30,8 +30,8 @@ class CNNDeconvGUI(Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
         # CONSTANTS BLOCK
-        self.CNN_MODEL_PATH = "./CNN_Deconvolution/models/3d_gaus_blur.h5"
-        self.CNN_MODEL_PATH_2D = "./CNN_Deconvolution/models/3d_gaus_blur.h5"
+        self.CNN_STACK_2D_DECONV = "2d stack deconvolution"
+        self.CNN_3D_DECONV = "3d deconvolution"
 
         # init block
         self.deblurPredictor = DeblurPredictor()
@@ -72,32 +72,39 @@ class CNNDeconvGUI(Toplevel):
         Separator(self, orient='horizontal').grid(row=7, column=1, ipadx=200, pady=10, columnspan=3)
 
         # Post-processing block
-        Label(self,text="Postprocessing & debluring").grid(row=8,column = 1)
+        Label(self,text="Debluring").grid(row=8,column = 1)
+        Label(self,text="Debluring strategy:").grid(row=9,column = 1)
+        self.allCnnStrategies = [self.CNN_STACK_2D_DECONV, self.CNN_3D_DECONV]
+        self.allCnnStrategiesCb = Combobox(self, values = self.allCnnStrategies)
+        self.allCnnStrategiesCb.current(len(self.allCnnStrategies) - 1)
+        self.allCnnStrategiesCb.grid(row=9, column=3)
+
         self.allDevicesList, self.allDevicesNamesList = self.InitAllDevicesInTF()
         self.allDevicesCb = Combobox(self, values = self.allDevicesNamesList)
         self.allDevicesCb.current(len(self.allDevicesNamesList) - 1)
-        self.allDevicesCb.grid(row=9, column=1)
-        Button(self, text = 'Make deblur',command = self.Deblur).grid(row=9,column=3)
+        self.allDevicesCb.grid(row=10, column=1)
+        
+        Button(self, text = 'Make deblur',command = self.Deblur).grid(row=10,column=3)
 
 
-        Separator(self, orient='horizontal').grid(row=10, column=1, ipadx=200, pady=10, columnspan=3)
+        Separator(self, orient='horizontal').grid(row=11, column=1, ipadx=200, pady=10, columnspan=3)
 
         # Save result block
-        Label(self, text="Save results").grid(row = 11,column = 1)
-        Label(self,text="File name:").grid(row=12,column = 1)
+        Label(self, text="Save results").grid(row = 12,column = 1)
+        Label(self,text="File name:").grid(row=13,column = 1)
         self.resultNameW = Entry(self, width = 25, bg = 'white', fg = 'black')
-        self.resultNameW.grid(row = 12, column = 2, sticky = 'w')
-        Button(self, text = 'Save result',command = self.SaveResult).grid(row=12,column=3)
+        self.resultNameW.grid(row = 13, column = 2, sticky = 'w')
+        Button(self, text = 'Save result',command = self.SaveResult).grid(row=13,column=3)
         
         # Graphics
         Label(self, text="").grid(row = 1, column = 4)         # blanc insert
 
         self.beforeImg = Canvas(self,  width = 400, height = 400, bg = 'white')
-        self.beforeImg.grid(row = 1,column=5, rowspan=12,sticky=(N,E,S,W))
+        self.beforeImg.grid(row = 1,column=5, rowspan=13,sticky=(N,E,S,W))
         self.afterImg = Canvas(self,  width = 400, height = 400, bg = 'white')
-        self.afterImg.grid(row = 1,column=6, rowspan=12,sticky=(N,E,S,W))
+        self.afterImg.grid(row = 1,column=6, rowspan=13,sticky=(N,E,S,W))
         
-        Label(self, text = "").grid(row = 13,column = 6)       # blanc insert
+        Label(self, text = "").grid(row = 14,column = 6)       # blanc insert
         return
 
     def InitAllDevicesInTF(self):
@@ -247,11 +254,11 @@ class CNNDeconvGUI(Toplevel):
             return
 
         try:
-            if not self.deblurPredictor.isInited:
-                self.deblurPredictor.initPredictModel(self.imgPreproc.shape[0], self.imgPreproc.shape[1], self.imgPreproc.shape[2], self.CNN_MODEL_PATH)
+            deblurStrategy = self.allCnnStrategies[self.allCnnStrategiesCb.current()]
+            self.deblurPredictor.initPredictModel(self.imgPreproc.shape[0], self.imgPreproc.shape[1], self.imgPreproc.shape[2], deblurStrategy)
         except Exception as e:
             print(e)
-            showerror("Deblur-Error","No '{}' CNN model!".format(self.CNN_MODEL_PATH))
+            showerror("Deblur-Error",str(e))
             return
         
         try:
