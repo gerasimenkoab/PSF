@@ -13,29 +13,35 @@ TODO:
 - Add button "Authors" with authors
 """
 
-class MainWindowGUI(Tk):
 
-    def __init__(self, master = None, wwidth=800, wheight = 2000):
+class MainWindowGUI(Tk):
+    def __init__(self, master=None, wwidth=800, wheight=2000):
         super().__init__()
         self.imgBeadRawLoad = FALSE
 
         self.title("Simple experimental PSF extractor")
-        self.resizable(False,False)
-        Label(self, text="").grid(row = 0, column = 0)         # blanc insert
-        Label(self, text="").grid(row = 2, column = 0)         # blanc insert
-        Button(text = 'Launch CNN deconvolution', command = self.LaunchCNNDeconvolution).grid(row=2,column=5)
-        Label(self, text="").grid(row = 2, column = 2)         # blanc insert
-        Button(text = 'Launch PSF extractor', command = self.LaunchPSFExtractor).grid(row=2,column=3)
-        Label(self, text="").grid(row = 2, column = 4)         # blanc insert
-        Button(text = 'Launch bead extractor', command = self.LaunchBeadExtractor).grid(row=2,column=1)
-        Label(self, text="").grid(row = 2, column = 6)         # blanc insert
+        self.resizable(False, False)
+        Label(self, text="").grid(row=0, column=0)  # blanc insert
+        Label(self, text="").grid(row=2, column=0)  # blanc insert
+        Button(
+            text="Launch CNN deconvolution", command=self.LaunchCNNDeconvolution
+        ).grid(row=2, column=5)
+        Label(self, text="").grid(row=2, column=2)  # blanc insert
+        Button(text="Launch PSF extractor", command=self.LaunchPSFExtractor).grid(
+            row=2, column=3
+        )
+        Label(self, text="").grid(row=2, column=4)  # blanc insert
+        Button(text="Launch bead extractor", command=self.LaunchBeadExtractor).grid(
+            row=2, column=1
+        )
+        Label(self, text="").grid(row=2, column=6)  # blanc insert
 
-        Label(self, text = "").grid(row = 3,column = 1)        # blanc insert
+        Label(self, text="").grid(row=3, column=1)  # blanc insert
 
         # add menu
         m = Menu(self)
         self.config(menu=m)
-        
+
         # add buttons
         m.add_command(label="Authors", command=self.Authors)
         m.add_command(label="Exit", command=quit)
@@ -57,7 +63,7 @@ class MainWindowGUI(Tk):
         Label(tk, text="").grid(row=3, column=8)
         Label(tk, text="Sachuk A.").grid(row=3, column=9)
         Label(tk, text="").grid(row=3, column=10)
-        
+
         Label(tk, text="").grid(row=4, column=0)
         return
 
@@ -67,7 +73,7 @@ class MainWindowGUI(Tk):
         def on_closing():
             if askokcancel("Quit", "Do you want to quit?"):
                 deconvolver.destroy()
-        
+
         deconvolver.protocol("WM_DELETE_WINDOW", on_closing)
         deconvolver.grab_set()
         return
@@ -80,6 +86,7 @@ class MainWindowGUI(Tk):
     def LaunchBeadExtractor(self):
         return
 
-if __name__ == '__main__':
-      rootWin = MainWindowGUI()
-      rootWin.mainloop()
+
+if __name__ == "__main__":
+    rootWin = MainWindowGUI()
+    rootWin.mainloop()
