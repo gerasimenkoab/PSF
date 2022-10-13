@@ -1,10 +1,9 @@
-from scipy import signal
-from scipy import misc
-import numpy as np
 import itertools
-from scipy.special import jv
 from tkinter.messagebox import showerror, showinfo
 
+import numpy as np
+from scipy import misc, signal
+from scipy.special import jv
 
 
 def PointFunction(pt, r0, r, maxIntensity):

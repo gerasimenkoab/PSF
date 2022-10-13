@@ -1,14 +1,13 @@
-import numpy as np
-
+import copy
 import tkinter as tk
 import tkinter.ttk as ttk
 
+import numpy as np
 
+from CNN_Deconvolution.BigImageManager import BigImageManager
 from CNN_Deconvolution.DeblurCNNModel2D import DeblurCNNModel2D
 from CNN_Deconvolution.DeblurCNNModelMini3D import DeblurCNNModelMini3D
-from CNN_Deconvolution.BigImageManager import BigImageManager
 
-import copy
 
 # Class, which provides predicting of output data
 class DeblurPredictor:

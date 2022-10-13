@@ -1,6 +1,6 @@
 import numpy as np
+import tifffile as tff  # https://pypi.org/project/tifffile/
 from PIL import Image
-import tifffile as tff          #  https://pypi.org/project/tifffile/
 
 
 def ReadTiffStackFile(fileName):

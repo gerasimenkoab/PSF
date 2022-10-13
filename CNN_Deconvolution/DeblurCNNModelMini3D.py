@@ -3,6 +3,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.optimizers import Adam
 
+
 # Class witch provides CNN training and giving answers
 class DeblurCNNModelMini3D:
     def __init__(self):

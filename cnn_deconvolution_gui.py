@@ -1,25 +1,22 @@
-from tkinter import *
-from tkinter.messagebox import showerror, showinfo, askokcancel
-from tkinter.filedialog import askopenfilename
-from tkinter.filedialog import askopenfilenames
-from tkinter.ttk import Combobox, Separator
-from PIL import ImageTk, Image
-
 import os.path
 from os import path
-from PySimpleGUI.PySimpleGUI import Exit
-from matplotlib import pyplot as plt
-from mpl_toolkits.axes_grid1 import AxesGrid
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from tkinter import *
+from tkinter.filedialog import askopenfilename, askopenfilenames
+from tkinter.messagebox import askokcancel, showerror, showinfo
+from tkinter.ttk import Combobox, Separator
+
 import matplotlib.cm as cm
+import numpy as np
+import tensorflow as tf
+from matplotlib import pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from mpl_toolkits.axes_grid1 import AxesGrid
+from PIL import Image, ImageTk
+from PySimpleGUI.PySimpleGUI import Exit
 
 import file_inout as fio
 import img_transform as imtrans
 from CNN_Deconvolution.DeblurPredictor import DeblurPredictor
-
-import tensorflow as tf
-
-import numpy as np
 
 """
 TODO:
@@ -41,18 +38,18 @@ class CNNDeconvGUI(Toplevel):
         self.resizable(False, False)
         Label(self, text="").grid(row = 0, column = 0)         # blanc insert
 
-        # Load image block
-        Label(self,text="Load image").grid(row=1,column = 1)
-        Button(self, text = 'Load image', command = self.LoadImageFile).grid(row=1,column=3)
-
         # Graphics settings block
-        Label(self, text="Resolution XY Z (nm/pxl):").grid(row = 2,column = 1)
+        Label(self, text="Resolution XY Z (nm/pxl):").grid(row = 1,column = 1)
         self.beadImXYResWgt = Entry(self, width = 15, bg = 'white', fg = 'black')
-        self.beadImXYResWgt.grid(row = 2, column = 2, sticky = 'w')
-        self.beadImXYResWgt.insert(0, "0.022")
+        self.beadImXYResWgt.grid(row = 1, column = 2, sticky = 'w')
+        self.beadImXYResWgt.insert(0, "22")
         self.beadImZResWgt = Entry(self, width = 15, bg = 'white', fg = 'black')
-        self.beadImZResWgt.grid(row = 2, column = 3, sticky = 'w')
-        self.beadImZResWgt.insert(0, "0.1")
+        self.beadImZResWgt.grid(row = 1, column = 3, sticky = 'w')
+        self.beadImZResWgt.insert(0, "100")
+
+        # Load image block        
+        Label(self,text="Load image").grid(row=2,column = 1)
+        Button(self, text = 'Load image', command = self.LoadImageFile).grid(row=2,column=3)
 
         Separator(self, orient='horizontal').grid(row=3, column=1, ipadx=200, pady=10, columnspan=3)
 
@@ -197,6 +194,12 @@ class CNNDeconvGUI(Toplevel):
         cbar = grid.cbar_axes[0].colorbar(im)
         return fig, grid
 
+    def clearCanvas(self, canvas):
+        for item in canvas.get_tk_widget().find_all(): 
+            canvas.get_tk_widget().delete(item)
+        return
+
+
     # Method which provides image loading in memory
     def LoadImageFile(self):
         """Loading raw bead photo from file at self.beadImgPath"""
@@ -213,9 +216,16 @@ class CNNDeconvGUI(Toplevel):
             self.layerPlot, self.rowPlot, self.colPlot = result[0][0], result[1][0], result[2][0]
             fig, axs = self.GenerateFigure(self.imgPreproc, "Before", [self.layerPlot, self.rowPlot, self.colPlot], [0, 255])
             
+            # Clear last blur blured
+            if hasattr(self, 'figIMG_canvas_agg'):
+                self.clearCanvas(self.figIMG_canvas_agg)
+
+            if hasattr(self, 'figIMG_canvas_agg_deblur'):
+                self.clearCanvas(self.figIMG_canvas_agg_deblur)
+
             # Instead of plt.show creating Tkwidget from figure
             self.figIMG_canvas_agg = FigureCanvasTkAgg(fig, self.beforeImg)
-            self.figIMG_canvas_agg.get_tk_widget().grid(row = 1,column=5, rowspan=10,sticky=(N,E,S,W))
+            self.figIMG_canvas_agg.get_tk_widget().grid(row = 1,column=5, rowspan=13,sticky=(N,E,S,W))
 
         except Exception as e:
             print(e)
@@ -242,9 +252,13 @@ class CNNDeconvGUI(Toplevel):
         self.layerPlot, self.rowPlot, self.colPlot = result[0][0], result[1][0], result[2][0]
         fig, axs = self.GenerateFigure(self.imgPreproc, "Before", [self.layerPlot, self.rowPlot, self.colPlot], [0, 255])
             
+        # Clear last blur blured
+        if hasattr(self, 'figIMG_canvas_agg'):
+            self.clearCanvas(self.figIMG_canvas_agg)
+
         # Instead of plt.show creating Tkwidget from figure
         self.figIMG_canvas_agg = FigureCanvasTkAgg(fig, self.beforeImg)
-        self.figIMG_canvas_agg.get_tk_widget().grid(row = 1,column=5, rowspan=10,sticky=(N,E,S,W))
+        self.figIMG_canvas_agg.get_tk_widget().grid(row = 1,column=5, rowspan=13,sticky=(N,E,S,W))
         return
 
     # Deblur method
@@ -268,9 +282,13 @@ class CNNDeconvGUI(Toplevel):
             
                 fig, axs = self.GenerateFigure(self.debluredImg, "Deblured", [self.layerPlot, self.rowPlot, self.colPlot], [0, 255])
             
+                # Clear last blur blured
+                if hasattr(self, 'figIMG_canvas_agg_deblur'):
+                    self.clearCanvas(self.figIMG_canvas_agg_deblur)
+
                 # Instead of plt.show creating Tkwidget from figure
-                self.figIMG_canvas_agg = FigureCanvasTkAgg(fig, self.afterImg)
-                self.figIMG_canvas_agg.get_tk_widget().grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
+                self.figIMG_canvas_agg_deblur = FigureCanvasTkAgg(fig, self.afterImg)
+                self.figIMG_canvas_agg_deblur.get_tk_widget().grid(row = 1,column=6, rowspan=13,sticky=(N,E,S,W))
         except Exception as e:
             print(e)
             showerror("LoadCNNModelFile: Error", "Smthing goes wrong!")
@@ -305,4 +323,3 @@ class CNNDeconvGUI(Toplevel):
 if __name__ == '__main__':
     rootWin = CNNDeconvGUI()
     rootWin.mainloop()
-

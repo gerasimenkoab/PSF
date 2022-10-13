@@ -1,5 +1,6 @@
 import numpy as np
 
+
 # Class which store chunk information
 class ImageChunk:
     def __init__(self, imgSource, rowStart, colStart, layers, chunkSize, offsetSize, rowOffsetBegin, rowOffsetEnd, colOffsetBegin, colOffsetEnd):

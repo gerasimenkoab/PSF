@@ -1,22 +1,21 @@
-from tkinter import *
-from tkinter.messagebox import showerror, showinfo
-from tkinter.filedialog import askopenfilename
-from tkinter.filedialog import askopenfilenames
-from PIL import ImageTk, Image
-
+import itertools
 import os.path
 from os import path
-from PySimpleGUI.PySimpleGUI import Exit
+from tkinter import *
+from tkinter.filedialog import askopenfilename, askopenfilenames
+from tkinter.messagebox import showerror, showinfo
+
+import matplotlib.cm as cm
+import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib.cm as cm
+from PIL import Image, ImageTk
+from PySimpleGUI.PySimpleGUI import Exit
 
-import file_inout as fio
 import deconvolution as decon
+import file_inout as fio
 import img_transform as imtrans
 
-import numpy as np
-import itertools
 """
 TODO: 
 - [x] implement bead images draw in tkinter with matplotlib subplot

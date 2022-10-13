@@ -1,7 +1,7 @@
 from tkinter import *
 
-from cnn_deconvolution_gui import *
 from app_gui import *
+from cnn_deconvolution_gui import *
 from psf_extractor_gui import PSFExtractorGUI
 
 """
@@ -83,4 +83,3 @@ class MainWindowGUI(Tk):
 if __name__ == '__main__':
       rootWin = MainWindowGUI()
       rootWin.mainloop()
-
