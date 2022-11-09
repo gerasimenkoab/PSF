@@ -23,6 +23,7 @@ def ReadTiffStackFile(fileName):
 def ReadTiffMultFiles(fileNameList):
     """Function ReadTiffStackFile() reads tiff stack from file and return np.array"""
     print("Loading Image from tiff stack file..... ")
+    intensity_mult = 10
     try:
         image_preread = Image.open(fileNameList[0])
         print("color_mode:", image_preread.mode)
@@ -41,6 +42,7 @@ def ReadTiffMultFiles(fileNameList):
                 ba = np.array(b)
                 grayImgArr = (0.299*ra + 0.587*ga + 0.114*ba)
                 imgArray[i,:,:] = grayImgArr
+                #print("maxint:", i, np.max(grayImgArr))
         elif image_preread.mode =="I" or image_preread.mode =="L":
             for i,fileName in enumerate(fileNameList):
                 imgArray[i,:,:] = np.array(Image.open(fileName))
@@ -88,6 +90,17 @@ def SaveTiffStack(tiffDraw = np.zeros([3,4,6]), dirName = "img", filePrefix = "!
 
     imlist[0].save( path, save_all=True, append_images=imlist[1:])
     print("file saved in one tiff",dirName+"\\"+filePrefix+".tiff")
+
+def SaveAsTiffStack(tiffDraw = np.zeros([3,4,6]), filename= "img", outtype = "uint8"):
+    """ Print files for any input arrray of intensity values 
+        tiffDraw - numpy ndarray of intensity values"""
+    print("Trying to save file", outtype)
+    imlist = []
+    for tmp in tiffDraw:
+        imlist.append(Image.fromarray(tmp.astype(outtype)))
+
+    imlist[0].save( filename, save_all=True, append_images=imlist[1:])
+    print("File saved in one tiff", filename)
 
 
 
