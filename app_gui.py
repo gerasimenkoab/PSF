@@ -2,6 +2,7 @@ from tkinter import *
 
 from app_gui import *
 from cnn_deconvolution_gui import *
+from cnn_learning import *
 from psf_extractor_gui import PSFExtractorGUI
 
 """
@@ -10,7 +11,6 @@ TODO:
 - Close all TODO in psf_extractor_gui.py
 
 - Maybe make some img label on start window?
-- Add button "Authors" with authors
 """
 
 
@@ -36,7 +36,7 @@ class MainWindowGUI(Tk):
         
         Label(self, text="").grid(row=4, column=0)  # blanc insert
         Button(
-            text="Launch CNN learning", command=self.LaunchCNNDeconvolution
+            text="Launch CNN learning", command=self.LaunchCNNLearning
         ).grid(row=4, column=1)
         Label(self, text="").grid(row=4, column=2)  # blanc insert
         Button(
@@ -85,6 +85,11 @@ class MainWindowGUI(Tk):
         deconvolver.grab_set()
         return
 
+    def LaunchCNNLearning(self):
+        teacher = CNNLearningGUI(self)
+        teacher.grab_set()
+        return
+    
     def LaunchPSFExtractor(self):
         extractor = PSFExtractorGUI(self)
         extractor.grab_set()
