@@ -11,16 +11,31 @@ import tensorflow as tf
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from mpl_toolkits.axes_grid1 import AxesGrid
-from PIL import Image, ImageTk
+from PIL import Image, ImageFilter
 from PySimpleGUI.PySimpleGUI import Exit
 
 import file_inout as fio
 import img_transform as imtrans
 from CNN_Deconvolution.DeblurPredictor import DeblurPredictor
 
-"""
-TODO:
-"""
+from help_instuctions.LoadHelpWindow import LoadHelpWindow
+
+
+# Method which provides image bluring
+def BlurGaussian(array, gaussianBlurRad: int):
+    for layer in range(array.shape[0]):
+        layerArray = array[layer, :, :]
+        image = Image.fromarray(layerArray)
+        image = image.filter(ImageFilter.GaussianBlur(radius=gaussianBlurRad))
+        image = image.filter(ImageFilter.MedianFilter(size=3))
+        array[layer, :, :] = np.array(image, dtype="uint8")[:, :]
+    return array
+
+
+# Method whic provides image intensities maximization
+def MaximizeIntesities(array):
+    array = (array / np.amax(array) * 255).astype("uint8")
+    return array
 
 
 class CNNDeconvGUI(Toplevel):
@@ -116,6 +131,13 @@ class CNNDeconvGUI(Toplevel):
         self.afterImg.grid(row=1, column=6, rowspan=13, sticky=(N, E, S, W))
 
         Label(self, text="").grid(row=14, column=6)  # blanc insert
+        
+        # add menu
+        m = Menu(self)
+        self.config(menu=m)
+
+        # add buttons
+        m.add_command(label="Help", command=self.LoadHelp)
         return
 
     def InitAllDevicesInTF(self):
@@ -131,6 +153,10 @@ class CNNDeconvGUI(Toplevel):
                 details = tf.config.experimental.get_device_details(device)
                 device_readable_names.append(details.get("device_name"))
         return devices_names, device_readable_names
+
+    def LoadHelp(self):
+        help = LoadHelpWindow(self, "./help_instuctions/src/cnn_deconvolution.png")
+        return
 
     # Methods, which provides graphics plotting
     def getRowPlane(self, img, row):
@@ -302,10 +328,10 @@ class CNNDeconvGUI(Toplevel):
 
         self.imgPreproc = self.imgRaw.copy()
         if isNeedMaximize:
-            self.imgPreproc = imtrans.MaximizeIntesities(self.imgPreproc)
+            self.imgPreproc = MaximizeIntesities(self.imgPreproc)
         if isNeedGausBlur:
             rad = self.gausRadiusSB.get()
-            self.imgPreproc = imtrans.BlurGaussian(self.imgPreproc, int(rad))
+            self.imgPreproc = BlurGaussian(self.imgPreproc, int(rad))
 
         result = np.where(self.imgPreproc == np.amax(self.imgPreproc))
         self.layerPlot, self.rowPlot, self.colPlot = (

@@ -18,6 +18,7 @@ import file_inout as fio
 import img_transform as imtrans
 from CNN_Deconvolution.DeblurTrainer import DeblurTrainer
 
+from help_instuctions.LoadHelpWindow import LoadHelpWindow
 from CNN_Deconvolution.GenerateDataset import generate_set_2d, generate_set_3d
 from CNN_Deconvolution.RealDataGenerator.ModelCreator import ModelCreator
 
@@ -137,7 +138,14 @@ class CNNLearningGUI(Toplevel):
         
         Label(self, text="").grid(row=21, column=0)  # blanc insert        
         Button(self, text="Start training", command=self.StartLearning).grid(row=22, column=5)
-        Label(self, text="").grid(row=23, column=0)  # blanc insert        
+        Label(self, text="").grid(row=23, column=0)  # blanc insert    
+        
+        # add menu
+        m = Menu(self)
+        self.config(menu=m)
+
+        # add buttons
+        m.add_command(label="Help", command=self.LoadHelp)    
         return
 
     def InitAllDevicesInTF(self):
@@ -153,6 +161,10 @@ class CNNLearningGUI(Toplevel):
                 details = tf.config.experimental.get_device_details(device)
                 device_readable_names.append(details.get("device_name"))
         return devices_names, device_readable_names
+
+    def LoadHelp(self):
+        help = LoadHelpWindow(self, "./help_instuctions/src/learning_instruction.png")
+        return
 
     # Methods which provides loading images
     def isTiffCorrect(self, width, height, nlayers, oldW, oldH, oldL):
