@@ -18,6 +18,7 @@ from scipy.ndimage import gaussian_filter
 import file_inout as fio 
 import deconvolution as decon
 import img_transform as imtrans
+from ImageRaw_class import ImageRaw
 
 import numpy as np
 import itertools
@@ -26,17 +27,8 @@ from scipy.interpolate import RegularGridInterpolator
 
 """
 TODO: 
-- [x] implement bead images draw in tkinter with matplotlib subplot
-- fix centering
-- add bead extraction
-- add full interpolation over Z(depth)-axis in extract beads module
-- fix some obsolete interface buttons
+    -add voxel size dialog when load image
 
-
-- сделать апскейл загружаемой картинки по z, чтоб выровнять разрешение
-- либо не апскейлить псф
-- выдача картинки после загрузки  self.imArr1
-- выдача картинки после деконволюции 
 
 """
     # def SetVoxel():
@@ -52,68 +44,37 @@ TODO:
     #             self.voxelSizeEntries[voxelField] = ent
     #     f1.grid(row=3,column=0,sticky='we')
 
-class ImageRaw:
-    """Class for image storage."""
-    def __init__(self, fname, voxelSize = [0.1,0.022,0.022],imArray=np.zeros((30,30,30))):
-        self.path = fname
-        self.beadVoxelSize = voxelSize # microscope voxel size(z,x,y) in micrometres (resolution=micrometre/pixel)
-        self.voxelFields = 'Z','X','Y'
-        self.voxelSizeEntries ={}
-        self.imArray = imArray
-
-# methods
-    def ShowClassInfo(self,plotPreview = False):
-        print("ImageClassInfo:")
-        print("path:", self.path)
-        print("voxel:", self.beadVoxelSize)
-        print("image shape:", self.imArray.shape)
-        if plotPreview == True:  # draw 3 projections of bead
-                figUpsc, figUpscAxs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
-                figUpsc.suptitle("Image preview")
-                figUpscAxs[0].pcolormesh(self.imArray[self.imArray.shape[0] // 2,:,:],cmap=cm.jet)
-                figUpscAxs[1].pcolormesh(self.imArray[:,self.imArray.shape[1] // 2,:],cmap=cm.jet)
-                figUpscAxs[2].pcolormesh(self.imArray[:,:,self.imArray.shape[2] // 2],cmap=cm.jet)
-                newWin= Toplevel(self)
-                newWin.geometry("200x600")
-                newWin.title("Image ")
-                cnvFigUpsc = Canvas(newWin,  width = 200, height = 600, bg = 'white')
-                cnvFigUpsc.pack(side = TOP, fill = BOTH, expand = True)
-                FigureCanvasTkAgg(figUpsc,cnvFigUpsc).get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
-
-    def RescaleZ(self, newZVoxelSize):
-        "rescale over z. newZVoxelSize in micrometers"
-        #теперь разбрасываем бид по отдельным массивам .
-        oldShape = self.imArray.shape
-#        print("old shape:",oldShape)
-#        print("newshape:",newShape)
-        # zcoord = np.zeros(oldShape[0])
-        # xcoord = np.zeros(oldShape[1])
-        # ycoord = np.zeros(oldShape[2])
-        # zcoordR = np.zeros(shapeZ) # shape of rescaled bead in Z dimension  - same as x shape
-#            bead = bead/np.amax(bead)*255.0 # normalize bead intensity
-#        maxcoords = np.unravel_index(np.argmax(bead, axis=None), bead.shape)
-#            print("maxcoords:",maxcoords)
-
-        zcoord = np.arange(oldShape[0]) * self.beadVoxelSize[0]
-        xcoord = np.arange(oldShape[1]) * self.beadVoxelSize[1]
-        ycoord = np.arange(oldShape[2]) * self.beadVoxelSize[2]
-        shapeZ = int(zcoord[oldShape[0]-1] / newZVoxelSize)
-        print("voxel size:",self.beadVoxelSize[0],oldShape[0] , (shapeZ))
-        zcoordR =np.arange(shapeZ) * newZVoxelSize
-#        print("zcoord:",zcoord,shapeZ)
-#        print("zcoordR:",zcoordR)
-        interp_fun = RegularGridInterpolator((zcoord, xcoord, ycoord), self.imArray)
-
-        pts = np.array(list(itertools.product(zcoordR, xcoord, ycoord)))
-        pts_ID = list(itertools.product(np.arange(shapeZ), np.arange(oldShape[1]), np.arange(oldShape[2])))
-        ptsInterp = interp_fun(pts)
-        beadInterp = np.ndarray((shapeZ,oldShape[1],oldShape[2]))
-        for pID, p_ijk in enumerate(pts_ID):
-                beadInterp[p_ijk[0],p_ijk[1],p_ijk[2]] = ptsInterp[pID]
-        self.imArray = beadInterp
-        self.beadVoxelSize[0] = newZVoxelSize
 
 
+
+class VoxelConfig(Frame):
+    newFrame = None
+
+    def __init__(self, master=None):
+        Frame.__init__(self, master)
+
+        self.newFrame = Toplevel(master)
+        self.label = Label(self.newFrame, text="Voxelin format z x y:")
+        self.label.pack()
+#        self.value = StringVar()
+        self.entry = Entry(self.newFrame)
+        self.entry.pack()
+        self.entry.insert(0,"skip voxel dialog")
+        self.entry.bind('<Return>',self.close_window)
+
+#        self.button = Button(self.newFrame, text='Ok', command=lambda: self.close_window())
+#        self.button.pack()
+        print(self.value)
+
+    def close_window(self):
+        if self.newFrame:
+            try:
+                self.value = self.entry.get()
+                print("self.value = ", self.value)
+                self.newFrame.destroy()
+            except:
+                print("Failed to close window")
+            self.newFrame = None
 
 class MainWindowGUI(Tk):
 
@@ -128,41 +89,43 @@ class MainWindowGUI(Tk):
 
         self.title("Simple experimental PSF extractor")
         self.resizable(False,False)
-        Label(self, text="").grid(row = 0, column = 0)         # blanc insert
-        Label(self,text="Load avaraged bead image").grid(row=1,column = 1)
+        Label(self, text="PSF  calculation:", font='Helvetica 14 bold').grid(row = 0, column = 1)         # blanc insert
+        f1 = Frame(self)
+        Label(f1, text="").grid(row = 0, column = 0)         # blanc insert
+        Label(f1,text="1. Load avaraged bead image created with bead extractor application.", font='Helvetica 10 bold').grid(row=1, column = 1, columnspan=2 , sticky = 'w')
 
-        self.beadImgPathW = Entry(self, width = 25, bg = 'white', fg = 'black')
+        self.beadImgPathW = Entry(f1, width = 25, bg = 'white', fg = 'black')
         self.beadImgPathW.grid(row = 2, column = 1, sticky = 'w')
-        Button(text = 'Load image file', command = self.LoadBeadImageFile).grid(row=2,column=3)
+        Button(f1,text = 'Load image file', command = self.LoadBeadImageFile).grid(row=2,column=2)
+        Separator(f1, orient="horizontal").grid( row=3, column=1, ipadx=200, pady=10, columnspan=2 )
+        f1.grid(column = 1,row =1, sticky = "WE")
 
 
+        f2 = Frame(self)
+        Label(f2, text="2. Fill Bead Image Parameters", font='Helvetica 10 bold').grid(row = 0, column = 0, columnspan=2 , sticky = 'w')         # blanc insert
+        Label(f2,text="Bead size(nm):").grid(row = 1,column = 0)
+        self.beadSizeWgt = Entry(f2, width = 15, bg = 'white', fg = 'black')
+        self.beadSizeWgt.grid(row = 1, column = 1, sticky = 'w')
 
-#        Button(text = 'Launch bead extractor').grid(row=3,column=1)
-#        Button(text = 'Show loaded bead image').grid(row=3,column=2)
-#        Button(text = 'Center image intensity',command = self.CenteringImageInt).grid(row=3,column=3)
-        Separator(self, orient="horizontal").grid( row=3, column=1, ipadx=200, pady=10, columnspan=3 )
-
-        Label(text="Bead size(nm):").grid(row = 4,column = 1)
-        self.beadSizeWgt = Entry(self, width = 15, bg = 'white', fg = 'black')
-        self.beadSizeWgt.grid(row = 4, column = 2, sticky = 'w')
-
-        Label(text="Resolution XY Z (nm/pixel):").grid(row = 5,column = 1)
-        self.beadImXYResWgt = Entry(self, width = 15, bg = 'white', fg = 'black')
-        self.beadImXYResWgt.grid(row = 5, column = 2, sticky = 'w')
+        Label(f2,text="Resolution XY Z (nm/pixel):").grid(row = 2,column = 0)
+        self.beadImXYResWgt = Entry(f2, width = 15, bg = 'white', fg = 'black')
+        self.beadImXYResWgt.grid(row = 2, column = 1, sticky = 'w')
         #Label(text="Resolution Z(nm/pixel)").grid(row = 5,column = 1)
-        self.beadImZResWgt = Entry(self, width = 15, bg = 'white', fg = 'black')
-        self.beadImZResWgt.grid(row = 5, column = 3, sticky = 'w')
+        self.beadImZResWgt = Entry(f2, width = 15, bg = 'white', fg = 'black')
+        self.beadImZResWgt.grid(row = 2, column = 2, sticky = 'w')
         
-        Label(text="Iteration number:").grid(row = 6,column = 1)
-        self.iterNumWgt = Entry(self, width = 15, bg = 'white', fg = 'black')
-        self.iterNumWgt.grid(row = 6, column = 2, sticky = 'w')
+
+        Label(f2, text="3. Run PSF calculation with desired number of iterations", font='Helvetica 10 bold').grid(row = 3, column = 0, columnspan=2, sticky = 'w' )         # blanc insert
+        Label(f2,text="Iteration number:").grid(row = 4,column = 0)
+        self.iterNumWgt = Entry(f2, width = 15, bg = 'white', fg = 'black')
+        self.iterNumWgt.grid(row = 4, column = 1, sticky = 'w')
         #setting default values
         self.beadSizeWgt.insert(0,str(200))
         self.beadImXYResWgt.insert(0,str(22))
         self.beadImZResWgt.insert(0,str(100))
         self.iterNumWgt.insert(0,str(50))
 
-        Button(text = 'Calculate PSF', command = self.CalculatePSF).grid(row=6,column=3)
+        Button(f2,text = 'Calculate PSF', command = self.CalculatePSF).grid(row=4,column=2)
 
         # Label(text="PSF folder").grid(row = 8,column = 1)
         # self.folderPSFWgt = Entry(self, width = 15, bg = 'white', fg = 'black')
@@ -173,30 +136,39 @@ class MainWindowGUI(Tk):
         # self.filePrfxPSFWgt = Entry(self, width = 15, bg = 'white', fg = 'black')
         # self.filePrfxPSFWgt.grid(row = 9, column = 2, sticky = 'w')
 
-        Button(text = 'Save PSF multi-file',command=self.SavePSFMulti).grid(row=8, column=1)
-        Button(text = 'Save PSF single-file',command=self.SavePSFSingle).grid(row=8, column=2)
+    #    Button(f2,text = 'Save PSF multi-file',command=self.SavePSFMulti).grid(row=5, column=0)
+        Button(f2,text = 'Save PSF as tiff',command=self.SavePSFSingle).grid(row=5, column=1)
 
-        Separator(self, orient="horizontal").grid( row=9, column=1, ipadx=200, pady=10, columnspan=3 )
+        Separator(f2, orient="horizontal").grid( row=6, column=0, ipadx=200, pady=10, columnspan=3 )
+        f2.grid(column = 1, row = 2, sticky = "WENS")
         
-        Label(self,text="Deconvolve image with PSF").grid(row=10,column = 2)
-        Button(text = 'Load Deconv Image',command = self.LoadDeconvPhoto).grid(row=11,column=1)
-        Button(text = 'Load PSF', command = self.LoadPSFImageFile).grid(row=11,column=2)
-        Label(text="Iteration number:").grid(row = 12,column = 1)
-        self.iterNumDecWgt = Entry(self, width = 5, bg = 'white', fg = 'black')
-        self.iterNumDecWgt.grid(row = 12, column = 2, sticky = 'w')
+        f3 = Frame(self)
+        Label(f3, text = " ").grid(row= 1, column = 2)
+        Label(f3, text="Deconvolve Image with PSF:", font='Helvetica 14 bold').grid(row=0,column = 0,columnspan = 2)
+        Label(f3, text = "1. Load Image tiff stack from file ", font='Helvetica 10 bold').grid(row= 2, column = 0, sticky = 'w')
+        Button(f3, text = 'Load  Image',command = self.LoadDeconvPhoto).grid(row=3,column=1)
+        Label(f3, text = "2. Load PSF tiff stack from file ", font='Helvetica 10 bold').grid(row= 4, column = 0, sticky = 'w')
+        Button(f3, text = 'Load PSF', command = self.LoadPSFImageFile).grid(row=5,column=1)
+        Label(f3, text = "3. Run deconvolution ", font='Helvetica 10 bold').grid(row= 6, column = 0, sticky = 'w')
+        f3_1 = Frame(f3)
+        Label(f3_1, text="Iteration number:").pack(side=LEFT, padx=2,pady=2)
+        self.iterNumDecWgt = Entry(f3_1, width = 5, bg = 'white', fg = 'black')
+        self.iterNumDecWgt.pack(side=LEFT, padx= 2,pady = 2)
+        f3_1.grid(row = 7, column = 0, sticky = 'w')
 
-        Button(text = 'Deconvolve',command = self.DeconvolveIt).grid(row=12,column=3)
-        Button(text = 'Save deconvolved image',command=self.SaveDeconvImgSingle).grid(row=12, column=5)
+        Button(f3, text = 'Deconvolve',command = self.DeconvolveIt).grid(row=7,column=1)
+        Button(f3, text = 'Save deconvolved image',command=self.SaveDeconvImgSingle).grid(row=8, column=1)
+        f3.grid(row = 3,column = 1, sticky = "WENS")
 
         Button(text = 'EXIT!',command = quit).grid(row=12,column=7)
 
         Label(self, text="").grid(row = 1, column = 4)         # blanc insert
 
-        self.cnvImg = Canvas(self,  width = 150, height = 450, bg = 'white')
+        self.cnvImg = Canvas(self,  width = 180, height = 450, bg = 'white')
         self.cnvImg.grid(row = 1,column=5, rowspan=10,sticky=(N,E,S,W))
-        self.cnvPSF = Canvas(self,  width = 150, height = 450, bg = 'white')
+        self.cnvPSF = Canvas(self,  width = 180, height = 450, bg = 'white')
         self.cnvPSF.grid(row = 1,column=6, rowspan=10,sticky=(N,E,S,W))
-        self.cnvDecon = Canvas(self,  width = 150, height = 450, bg = 'white')
+        self.cnvDecon = Canvas(self,  width = 180, height = 450, bg = 'white')
         self.cnvDecon.grid(row = 1,column=7, rowspan=10,sticky=(N,E,S,W))
         
         Label(self, text = "").grid(row = 13,column = 6) #blanc insert
@@ -280,6 +252,11 @@ class MainWindowGUI(Tk):
         self.figIMG_canvas_agg.get_tk_widget().grid(row = 1,column=5, rowspan=10,sticky=(N,E,S,W))
 #        self.imArr1 = self.UpscaleImage_Zaxis(self.imArr1,False)
 
+    def CallVoxelConfig(self):
+            popup = VoxelConfig(self)
+            self.wait_window(popup.newFrame)
+            print('DEBUG:', popup.value)
+#            self.create_widgets()
     def LoadDeconvPhoto(self):
         """Loading raw photo for deconvolution with created PSF"""
 #            self.beadImPath = askopenfilenames(title = 'Load Beads Photo')
@@ -287,7 +264,7 @@ class MainWindowGUI(Tk):
         print(fileList, type(fileList),len(fileList))
         if len(fileList) > 1:
                 print("ImageRawClass")
-                self.img = ImageRaw( fileList, [0.1,0.022,0.022],fio.ReadTiffMultFiles(fileList) )
+                self.img = ImageRaw( fileList, [0.022,0.022,0.022],fio.ReadTiffMultFiles(fileList) )
                 self.img.ShowClassInfo()
         else:
                 beadImPath = fileList[0]
@@ -299,6 +276,7 @@ class MainWindowGUI(Tk):
                 # self.img.ShowClassInfo()
                
 #                self.imArr1 = fio.ReadTiffStackFile(beadImPath)
+        self.CallVoxelConfig()
         self.img.imArray = self.BlurImage(self.img.imArray)
         fig, axs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
         fig.suptitle('Bead')
@@ -495,7 +473,7 @@ class MainWindowGUI(Tk):
             showinfo("PSF File saved at:", txt_folder)
 
     def SaveDeconvImgSingle(self):
-        """Save PSF array as multi-page tiff"""
+        """Save deconvolved image as multi-page tiff"""
         if hasattr(self, 'imgDecon')  :
             # txt_folder = self.folderPSFWgt.get()
             # txt_prefix = self.filePrfxPSFWgt.get()
@@ -508,10 +486,13 @@ class MainWindowGUI(Tk):
             #     print("creating dir")
             #     os.mkdir(txt_folder)
 #            fio.SaveTiffStack(self.imgDecon, txt_folder, txt_prefix)
+#            fio.SaveAsTiffStack_tag(self.imgDecon, fname)
             try:
                 fio.SaveAsTiffStack(self.imgDecon, fname)
+#                fio.SaveAsTiffStack_tag(self.imgDecon, fname)
+#                  pass
             except:
-                showinfo("Can't save file as ", fname)
+                  showinfo("Can't save file as ", fname)
 
 #            showinfo("PSF File saved at:", txt_folder)
 
@@ -577,27 +558,29 @@ class MainWindowGUI(Tk):
         3test_spheres - 100х100 - 38.9s / Phenom II 142s 
         test_strings - 200х200  - 216.9s
         """
-
-        start_time = time.time()
         try:
             
             try:   #get iternum from self.iterNumDecWgt
                 iterLim = int(self.iterNumDecWgt.get())
             except:
                 iterLim = 10
-#                self.imArr1 = imtrans.PaddingImg(self.imgBeadRaw)
-            ##self.imArr1 = imtrans.PaddingImg(self.imArr1)
-            ##self.imArr1 = np.pad(self.imArr1,((pad0,pad0),(pad1,pad1),(pad2,pad2)),'edge')
-            self.img.RescaleZ(self.img.beadVoxelSize[1])
-            self.img.ShowClassInfo()
-            # pad = self.imgPSF.shape
-            # self.img.imArray = np.pad(self.img.imArray,((pad[0],pad[0]),(pad[1],pad[1]),(pad[2],pad[2])),'edge')
-            # self.img.ShowClassInfo()
-            self.imgDecon = decon.DeconvolutionRL(self.img.imArray, self.imgPSF, iterLim,True)
+            try:
+                  self.img.RescaleZ(self.img.beadVoxelSize[1])
+            except:
+                  print("rescale failed")
+                  return
+            try:
+                  self.img.ShowClassInfo()
+            except:
+                  print("imageRaw show class fail")
+                  return
+            start_time = time.time()
+            try:
+                  self.imgDecon = decon.DeconvolutionRL(self.img.imArray, self.imgPSF, iterLim,True)
+            except:
+                  print("deconvolution failed")
+                  return
             print("decon output shape:", self.imgDecon.shape)
-            # self.imArr1 = np.pad(self.imArr1,((pad[0],pad[0]),(pad[1],pad[1]),(pad[2],pad[2])),'edge')
-            # print("shapes:",self.imArr1.shape[0],self.imArr1.shape[1],self.imArr1.shape[2])
-            # self.imgDecon = decon.MaxLikelhoodEstimationFFT_3D(self.imArr1, self.imgPSF, iterLim)
             print("Deconvolution time: %s seconds " % (time.time() - start_time))
         except:
             showerror("Error. Can't finish convolution properly.")

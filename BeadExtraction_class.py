@@ -1,5 +1,6 @@
 from logging import raiseExceptions
 from tkinter import *
+from tkinter import ttk
 from tkinter.messagebox import showerror, showinfo
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import askopenfilenames
@@ -18,8 +19,10 @@ from scipy.interpolate import interpn
 from scipy.interpolate import RegularGridInterpolator
 
 import file_inout as fio
+#from  ImageRaw_class import ImageRaw
 
 """   TODO: 
+       - add tiff tag with voxel size information
 """
 
 
@@ -53,8 +56,10 @@ class BeadExtraction(Tk):
             self.title("Bead extraction window.")
             self.resizable(False,False)
 
+            # main image canvas
             self.cnv1 = Canvas(self,  width = wwidth, height = wheight, bg = 'white')
             self.cnv1.grid(row = 0,column=0, columnspan=2,sticky=(N,E,S,W))
+            # main image scrollbars
             self.hScroll = Scrollbar(self, orient = 'horizontal')
             self.vScroll = Scrollbar(self, orient = 'vertical') 
             self.hScroll.grid(row = 1,column=0,columnspan=2,sticky=(E,W))
@@ -63,6 +68,7 @@ class BeadExtraction(Tk):
             self.cnv1.config(xscrollcommand=self.hScroll.set)
             self.vScroll.config(command = self.cnv1.yview)
             self.cnv1.config(yscrollcommand=self.vScroll.set)
+            # mark bead with right click
             self.cnv1.bind('<Button-3>', self.BeadMarkClick)
 
             Button(self, text = 'Load Beads Photo', command = self.LoadBeadsPhoto).grid(row=2,column=0,padx=2,pady=2,sticky='we')
@@ -121,25 +127,31 @@ class BeadExtraction(Tk):
             frameTiffTypeSelect.grid(row=5,column=3,padx=2,pady=2,sticky='we')
 
             self.blurMenuTypeText = ['gauss','none','median']
-            #self.tiffMenuBitDict={'gauss':'uint8','16 bit':'uint16','32 bit':'uint32'}
             self.blurApplyType =  StringVar()
             self.blurApplyType.set(self.blurMenuTypeText[0])
 
             frameBlurTypeSelect = Frame(self)
-            Label(frameBlurTypeSelect,width=10, text=" ").pack(side = LEFT,padx= 2,pady=2)
-            OptionMenu(frameBlurTypeSelect, self.blurApplyType, *self.blurMenuTypeText).pack(side = LEFT, padx = 2,pady = 2) 
+            Label(frameBlurTypeSelect,width=10, text=" Blur type:").pack(side = LEFT,padx= 2,pady=2)
+#            OptionMenu(frameBlurTypeSelect, self.blurApplyType, *self.blurMenuTypeText).pack(side = LEFT, padx = 2,pady = 2) 
+            blurTypeSelect = ttk.Combobox(frameBlurTypeSelect, textvariable =self.blurApplyType, values = self.blurMenuTypeText,state = "readonly")
+            blurTypeSelect.current(0)
+            blurTypeSelect.pack(side = LEFT)
+            self.doRescaleOverZ = IntVar(value = 0)
+            Checkbutton(frameBlurTypeSelect,variable = self.doRescaleOverZ, text = " equal XYZ scale", onvalue =1, offvalue = 0).pack(side = LEFT, padx = 2,pady = 2)
+            self.precessBeadPrev = IntVar(value = 0)
+            Checkbutton(frameBlurTypeSelect,variable = self.precessBeadPrev, text = " preview bead", onvalue =1, offvalue = 0).pack(side = LEFT, padx = 2,pady = 2)
+
             frameBlurTypeSelect.grid(row=5,column=0,padx=2,pady=2,sticky='we')
 
-
             frameAvrageBeads = Frame(self)
-            Button(frameAvrageBeads,text = 'Show Average Bead', command = self.BeadsArithmeticMean).pack(side = LEFT,padx=2,pady=2,fill=BOTH,expand=1)
+            Button(frameAvrageBeads,text = 'Average Bead', command = self.BeadsArithmeticMean).pack(side = LEFT,padx=2,pady=2,fill=BOTH,expand=1)
             Button(frameAvrageBeads, text = 'Save Average Bead', command = self.SaveAverageBead).pack(side = LEFT, padx=2,pady=2,fill=BOTH,expand = 1)
             frameAvrageBeads.grid(row =6,column = 0,sticky='we')
 
-            frameIdealBead = Frame(self)
-            Button(frameIdealBead,text = 'Save Plane Bead', command = self.SavePlaneSphereBead).pack(side = LEFT,padx=2,pady=2,fill=BOTH,expand=1)
-            Button(frameIdealBead, text = 'Save Airy Bead', command = self.SaveAirySphereBead).pack(side = LEFT, padx=2,pady=2,fill=BOTH,expand = 1)
-            frameIdealBead.grid(row =7,column = 0,sticky='we')
+            # frameIdealBead = Frame(self)
+            # Button(frameIdealBead,text = 'Save Plane Bead', command = self.SavePlaneSphereBead).pack(side = LEFT,padx=2,pady=2,fill=BOTH,expand=1)
+            # Button(frameIdealBead, text = 'Save Airy Bead', command = self.SaveAirySphereBead).pack(side = LEFT, padx=2,pady=2,fill=BOTH,expand = 1)
+            # frameIdealBead.grid(row =7,column = 0,sticky='we')
 
 
             #test bead display canvas. May be removed. if implemented separate window.
@@ -278,7 +290,7 @@ class BeadExtraction(Tk):
             xcoord = np.zeros(bead.shape[1])
             ycoord = np.zeros(bead.shape[2])
             zcoordR = np.zeros(bead.shape[1]) # shape of rescaled bead in Z dimension  - same as x shape
-            bead = bead/np.amax(bead)*255.0 # normalize bead intensity
+#            bead = bead/np.amax(bead)*255.0 # normalize bead intensity
             maxcoords = np.unravel_index(np.argmax(bead, axis=None), bead.shape)
 #            print("maxcoords:",maxcoords)
 
@@ -300,6 +312,7 @@ class BeadExtraction(Tk):
                   beadInterp[p_ijk[0],p_ijk[1],p_ijk[2]] = ptsInterp[pID]
             self.__upscaledBead = np.ndarray((bead.shape[1],bead.shape[1],bead.shape[1]))
             self.__upscaledBead = beadInterp
+            self.beadVoxelSize[0] = self.beadVoxelSize[1]
             if plotPreview == True:  # draw 3 projections of bead
                   figUpsc, figUpscAxs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
                   figUpsc.suptitle("Image preview")
@@ -357,7 +370,12 @@ class BeadExtraction(Tk):
 #TODO: select layer with maximum intensity value
                         disp_layer = int(len(fileList)/2)
                         disp_layer = 26 #
-                        print(disp_layer )
+                        # print("val:",np.argmax(self.imgCnvArr, axis=None))
+                        # print((self.imgCnvArrad).shape)
+                        # i = np.unravel_index(np.argmax(self.imgCnvArr, axis=None), self.imgCnvArrad.shape)
+                        # print("index found:",i)
+                        # disp_layer = i[0]
+                        print("disp_layer:",disp_layer )
                         print(fileList[ disp_layer])
                         self.imgBeadsRaw = Image.open( fileList[ disp_layer ] )
                         # preparing image for canvas from desired frame
@@ -552,7 +570,8 @@ class BeadExtraction(Tk):
                   tiffBit = self.tiffMenuBitDict[self.tiffSaveBitType.get()]
                   for idx,bead in enumerate(self.selectedBeads):
                         bead = self.BlurBead(bead)
-                        bead = self.UpscaleBead_Zaxis(bead)
+                        if self.doRescaleOverZ.get() == 1:
+                              bead = self.UpscaleBead_Zaxis(bead)
                         fio.SaveTiffStack(bead,  txt_folder, txt_prefix+str(idx).zfill(2),tiffBit)
                         # the rest is test bead view print. May be removed later
 #                        self.imgBeadRaw = bead
@@ -621,18 +640,34 @@ class BeadExtraction(Tk):
                               self.beadPrevNum.delete(0,END)
                               self.beadPrevNum.insert(0,str(len(self.selectedBeads)-1))
 
-      def BlurBead(self,bead):
+      def BlurBead(self, bead, blurType, plotPreview = False):
             """
             Blur bead with selected filter
             """
-            blurType = self.blurApplyType.get()
+#            blurType = self.blurApplyType.get()
             if blurType == 'gauss':
                   bead  = gaussian_filter(bead, sigma = 1)
             elif blurType == 'median':
                   bead = median_filter(bead, size = 3)
+
+            if plotPreview == True:  # draw 3 projections of bead
+                  figUpsc, figUpscAxs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
+                  figUpsc.suptitle("Image preview")
+                  figUpscAxs[0].pcolormesh(bead[bead.shape[0] // 2,:,:],cmap=cm.jet)
+                  figUpscAxs[1].pcolormesh(bead[:,beadInterp.shape[1] // 2,:],cmap=cm.jet)
+                  figUpscAxs[2].pcolormesh(bead[:,:,bead.shape[2] // 2],cmap=cm.jet)
+
+                  newWin= Toplevel(self)
+                  newWin.geometry("200x600")
+                  newWin.title("Image ")
+                  cnvFigUpsc = Canvas(newWin,  width = 200, height = 600, bg = 'white')
+                  cnvFigUpsc.pack(side = TOP, fill = BOTH, expand = True)
+                  FigureCanvasTkAgg(figUpsc,cnvFigUpsc).get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
+
             return bead
 
       def BeadsArithmeticMean(self):
+#            print("blurtype", self.blurApplyType.get(), "rescale Z", self.doRescaleOverZ.get() )
             if not hasattr(self,'selectedBeads'):
                   showerror("Error","Extract beads first.")
             else:
@@ -642,12 +677,27 @@ class BeadExtraction(Tk):
                   #       self.__avrageBead = gaussian_filter(self.__avrageBead, sigma = 1)
                   # elif blurType == 'median':
                   #       self.__avrageBead = median_filter(self.__avrageBead, size = 3)
-                  self.__avrageBead = self.BlurBead(self.__avrageBead)
-                  self.__avrageBead = self.UpscaleBead_Zaxis(self.__avrageBead,True)
+                  self.__avrageBead = self.BlurBead(self.__avrageBead, self.blurApplyType.get())
+                  if self.doRescaleOverZ.get() == 1:
+                        self.__avrageBead = self.UpscaleBead_Zaxis(self.__avrageBead)
+                  if self.precessBeadPrev.get() == 1:  # draw 3 projections of bead
+                        figUpsc, figUpscAxs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
+                        figUpsc.suptitle("Image preview")
+                        figUpscAxs[0].pcolormesh(self.__avrageBead[self.__avrageBead.shape[0] // 2,:,:],cmap=cm.jet)
+                        figUpscAxs[1].pcolormesh(self.__avrageBead[:,self.__avrageBead.shape[1] // 2,:],cmap=cm.jet)
+                        figUpscAxs[2].pcolormesh(self.__avrageBead[:,:,self.__avrageBead.shape[2] // 2],cmap=cm.jet)
+
+                        newWin= Toplevel(self)
+                        newWin.geometry("200x600")
+                        newWin.title("Image ")
+                        cnvFigUpsc = Canvas(newWin,  width = 200, height = 600, bg = 'white')
+                        cnvFigUpsc.pack(side = TOP, fill = BOTH, expand = True)
+                        FigureCanvasTkAgg(figUpsc,cnvFigUpsc).get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
+                       
 
       def SaveAverageBead(self):
             """Save averaged bead to file"""
-            print("upscaled bead shape:", type(self.__upscaledBead))
+            print("upscaled bead shape:", type(self.__avrageBead))
             txt_folder = ''
             txt_prefix = ''
             if txt_prefix == '':
@@ -662,7 +712,7 @@ class BeadExtraction(Tk):
             # TODO: resolve duplicate fname  (popup name ask)
                   fname = txt_prefix+str(self.beadDiameter*1000)+"nm".zfill(2)+"_1"
             tiffBit = self.tiffMenuBitDict[self.tiffSaveBitType.get()]
-            fio.SaveTiffStack(self.__upscaledBead,  txt_folder, txt_prefix+str(self.beadDiameter*1000)+"nm".zfill(2),tiffBit)
+            fio.SaveTiffStack(self.__avrageBead,  txt_folder, txt_prefix+str(self.beadDiameter*1000)+"nm".zfill(2),tiffBit)
 
 
 
