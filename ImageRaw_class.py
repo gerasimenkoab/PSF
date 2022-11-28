@@ -9,13 +9,14 @@ class ImageRaw:
       def __init__(self, fpath, voxelSize = [0.1,0.022,0.022],imArray=np.zeros((30,30,30))):
             self.path = fpath
 
-            if self.CheckVoxelCorrect(voxelSize):
+            if self.CheckVoxel(voxelSize):
                   # microscope voxel size(z,x,y) in micrometres (resolution=micrometre/pixel)
                   self.beadVoxelSize = voxelSize 
             self.voxelFields = 'Z','X','Y'
             self.voxelSizeEntries ={}
 
             self.imArray = imArray
+            # fixing possible array value issues
             self.imArray[np.isnan(self.imArray)] = 0 # replace NaN with 0
             self.imArray.clip(0)                     # replace negative with 0
 
@@ -39,19 +40,24 @@ class ImageRaw:
                   cnvFigUpsc.pack(side = TOP, fill = BOTH, expand = True)
                   FigureCanvasTkAgg(figUpsc,cnvFigUpsc).get_tk_widget().pack(side = TOP, fill = BOTH, expand = True)
 
-      def CheckVoxelCorrect(self, voxel):
+      def CheckVoxel(self, voxel):
             """Checking if voxel empty,wrong length or wrong values. All good return True"""
             if len(voxel) != 3 or np.amin(voxel) <= 0 :
                   return False
             return True            
 
-      def SetVoxel(self, inVoxel):
+      def SetVoxel(self, newVoxel):
             """Setting objects voxel"""
-            try:
-                  self.beadVoxelSize = inVoxel
-            except:
-                  print("Can't assign new voxel.")
-
+            if self.CheckVoxel(newVoxel):
+                  try:
+                        self.beadVoxelSize = newVoxel
+                  except:
+                        print("Can't assign new voxel.")
+                        return False
+            else:
+                  print("Something wrong with new voxel.")
+                  return False
+            return True
 
       def RescaleZ(self, newZVoxelSize):
             "Rescale over z. newZVoxelSize in micrometers"
