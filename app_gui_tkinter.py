@@ -47,41 +47,34 @@ TODO:
 
 
 
-class GetVoxelPopup(Frame):
+class GetStringPopup(Frame):
     """Class for popup window with string value input"""
     dialogWindow = None
     val = None
-    def __init__(self, master=None):
-#        Frame.__init__(self, master)
-
+    def __init__(self, master=None, dialogMsg = "Enter some text below"):
         self.dialogWindow = Toplevel(master)
-        self.dialogWindow.geometry("150x100")
-        self.label = Label(self.dialogWindow, text="Voxel in format z, x, y:")
-        self.label.pack()
-#        self.value = StringVar()
+        #self.dialogWindow.geometry("150x100")
+        self.label = Label(self.dialogWindow, text=dialogMsg)
+        self.label.pack(side=TOP)
         self.entry = Entry(self.dialogWindow)
-        self.entry.pack()
-        self.entry.insert(0,"enter voxel values")
-        self.entry.bind('<Return>',self.close_window)
-
+        self.entry.pack(side=TOP)
+        self.entry.insert(0,"Enter values here")
         self.button = Button(self.dialogWindow, text='Ok', command=lambda: self.close_window())
         self.button.pack(side=TOP)
-#        self.button.pack()
 
     def close_window(self):
+        """Close dialog and get valused from the entry"""
         if self.dialogWindow:
             try:
                 #TODO : - add entry content check
                 self.val = (self.entry.get()).split(",")
-
 #                self.master.beadVoxelSize[0] = float(val[0])
 #                self.master.beadVoxelSize[1] = float(val[1])
 #                self.master.beadVoxelSize[2] = float(val[2])
-
-                print("self.value = ", float(self.val[0]), float(self.val[1]), float(self.val[2]))
-                self.dialogWindow.destroy()
+#                print("self.value = ", float(self.val[0]), float(self.val[1]), float(self.val[2]))
             except:
-                print("Failed to close window")
+                print("Failed to get entry value")
+            self.dialogWindow.destroy()
             self.dialogWindow = None
 
 class MainWindowGUI(Tk):
@@ -262,7 +255,7 @@ class MainWindowGUI(Tk):
 
     def GetVoxelDialog(self):
         """Create diealog and return list of values"""
-        dWin = GetVoxelPopup(self)
+        dWin = GetStringPopup(self,"Enter voxel size as z,x,y")
         self.wait_window(dWin.dialogWindow)
         return ([float(a) for a in dWin.val])
 
@@ -511,6 +504,8 @@ class MainWindowGUI(Tk):
             imgPSFPath = fileList[0]
             print("Open path: ",imgPSFPath)
             self.imgPSF = fio.ReadTiffStackFile(imgPSFPath)
+            self.beadVoxelSize = self.GetVoxelDialog()
+            print("print voxel:", self.beadVoxelSize)
             # creating figure with matplotlib
             self.figPSF, axs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
             self.figPSF.suptitle("PSF")
