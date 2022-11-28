@@ -55,26 +55,17 @@ class BeadExtraction(Tk):
             # new window widgets
             self.title("Bead extraction window.")
             self.resizable(False,False)
+            Label(self, text="Extract Beads Set from the Microscope Image", font='Helvetica 14 bold').grid(row=0,column = 0, columnspan=2)
 
-            # main image canvas
-            self.cnv1 = Canvas(self,  width = wwidth, height = wheight, bg = 'white')
-            self.cnv1.grid(row = 0,column=0, columnspan=2,sticky=(N,E,S,W))
-            # main image scrollbars
-            self.hScroll = Scrollbar(self, orient = 'horizontal')
-            self.vScroll = Scrollbar(self, orient = 'vertical') 
-            self.hScroll.grid(row = 1,column=0,columnspan=2,sticky=(E,W))
-            self.vScroll.grid(row=0,column=2,sticky=(N,S))
-            self.hScroll.config(command = self.cnv1.xview)
-            self.cnv1.config(xscrollcommand=self.hScroll.set)
-            self.vScroll.config(command = self.cnv1.yview)
-            self.cnv1.config(yscrollcommand=self.vScroll.set)
-            # mark bead with right click
-            self.cnv1.bind('<Button-3>', self.BeadMarkClick)
-
-            Button(self, text = 'Load Beads Photo', command = self.LoadBeadsPhoto).grid(row=2,column=0,padx=2,pady=2,sticky='we')
-
+            f0= Frame(self)
             #making frames to pack several fileds in one grid cell
-            frameBeadSize = Frame(self)
+
+            # -------------- image and canvas frame --------------------------
+            f1 = Frame(f0)
+            Label(f1, text = "1. Load beads photos from the microscope and enter bead size and voxel parameters", font='Helvetica 10 bold').grid(row= 0, column = 0,columnspan = 2, sticky = 'w')
+
+            Button(f1, text = 'Load Beads Photo', command = self.LoadBeadsPhoto).grid(row=1,column=0,padx=2,pady=2,sticky='we')
+            frameBeadSize = Frame(f1)
             Label(frameBeadSize, width=20, text = 'Actual bead Size:', anchor='w').pack(side = LEFT,padx= 2, pady = 2)
             self.beadSizeEntry = Entry(frameBeadSize, width = 5, bg = 'green', fg = 'white')
             self.beadSizeEntry.pack(side = LEFT,padx=2,pady=2)
@@ -83,54 +74,70 @@ class BeadExtraction(Tk):
             self.beadSizeEntry.insert(0, self.beadDiameter)
             self.beadSizeEntry.bind('<Return>', self.ReturnBeadSizeEntryContent)
 
-
-            f1 = Frame(self)
-            Label(f1, text = 'Voxel size (\u03BCm): ', anchor='w').pack(side  = LEFT,padx=2,pady=2)
+            voxSizeFrame = Frame(f1)
+            Label(voxSizeFrame, text = 'Voxel size (\u03BCm): ', anchor='w').pack(side  = LEFT,padx=2,pady=2)
             for idField,voxelField in enumerate(self.voxelFields):
-                  Label(f1, text = voxelField + "=").pack(side  = LEFT,padx=2,pady=2)
-                  ent = Entry(f1, width = 5, bg = 'green', fg = 'white')
+                  Label(voxSizeFrame, text = voxelField + "=").pack(side  = LEFT,padx=2,pady=2)
+                  ent = Entry(voxSizeFrame, width = 5, bg = 'green', fg = 'white')
                   ent.pack(side = LEFT,padx=2,pady=2)
-                  Label(f1, text = " ").pack(side  = LEFT,padx=2,pady=2)
+                  Label(voxSizeFrame, text = " ").pack(side  = LEFT,padx=2,pady=2)
                   ent.insert(0,self.beadVoxelSize[idField])
                   ent.bind('<Return>', self.ReturnVoxelSizeEntryContent)
                   self.voxelSizeEntries[voxelField] = ent
-            f1.grid(row=3,column=0,sticky='we')
+            voxSizeFrame.grid(row=2,column=0,sticky='we')
+            f1.pack(side=TOP)
+            ttk.Separator(f0,orient = "horizontal").pack(ipadx=200, pady=10)
+            #---------------------- Mark Beads Frame --------------------
 
-            f2 = Frame(self)
-            Label(f2, width=20, text = 'Selection Size: ', anchor='w').pack(side = LEFT,padx= 2, pady = 2)
-            self.selectSizeEntry = Entry(f2, width = 5, bg = 'green', fg = 'white')
+            f2 = Frame(f0)
+            Label(f2, text = "2.Mark beads by right click on the window", font='Helvetica 10 bold').grid(row= 0, column = 0,columnspan = 2, sticky = 'w')
+            selectSizeFrame = Frame(f2)
+            Label(selectSizeFrame, width=20, text = 'Selection Size: ', anchor='w').pack(side = LEFT,padx= 2, pady = 2)
+            self.selectSizeEntry = Entry(selectSizeFrame, width = 5, bg = 'green', fg = 'white')
             self.selectSizeEntry.pack(side = LEFT,padx=2,pady=2)
-            Label(f2, text = 'px').pack(side  = LEFT,padx=2,pady=2)
+            Label(selectSizeFrame, text = 'px').pack(side  = LEFT,padx=2,pady=2)
             self.selectSizeEntry.insert(0, self.sideHalf * 2)
             self.selectSizeEntry.bind('<Return>', self.ReturnSizeEntryContent)
-            f2.grid(row=3,column=1,sticky='we')
+            selectSizeFrame.grid(row=1,column=0,sticky='we')
 
-
-
-
-            frameMarks = Frame(self)
+            frameMarks = Frame(f2)
             Button(frameMarks,text = 'Undo mark', command = self.RemoveLastMark).pack(side = LEFT,padx=2,pady=2,fill=BOTH,expand=1)
             Button(frameMarks, text = 'Clear All Marks', command = self.ClearAllMarks).pack(side = LEFT, padx=2,pady=2,fill=BOTH,expand = 1)
-            frameMarks.grid(row =4,column = 0,sticky='we')
+            frameMarks.grid(row =1,column = 1,sticky='we')
+            f2.pack(side =TOP)
+            ttk.Separator(f0,orient = "horizontal").pack(ipadx=200, pady=10)
 
-            Button(self, text = 'Extract Selected Beads', command = self.ExtractBeads).grid(row=4,column=1,padx=2,pady=2,sticky='we')
+            # ------------------- Extract Beads Frame ------------------------
+            f3 = Frame(f0)
+            Label(f3, text = "3. Extract selected beads and save set", font='Helvetica 10 bold').grid(row= 0, column = 0,columnspan = 2, sticky = 'w')
 
-            Button(self, text = 'Save Extracted Beads', command = self.SaveSelectedBeads).grid(row=4,column=3,padx=2,pady=2,sticky='we')
+            Button(f3, text = 'Extract Selected Beads', command = self.ExtractBeads).grid(row=1,column=0,padx=2,pady=2,sticky='we')
+
+            Button(f3, text = 'Save Extracted Beads', command = self.SaveSelectedBeads).grid(row=1,column=1,padx=2,pady=2,sticky='we')
+
             self.tiffMenuBitText = ['8 bit','16 bit','32 bit']
             self.tiffMenuBitDict={'8 bit':'uint8','16 bit':'uint16','32 bit':'uint32'}
             self.tiffSaveBitType =  StringVar()
             self.tiffSaveBitType.set(self.tiffMenuBitText[0])
 
-            frameTiffTypeSelect = Frame(self)
+            frameTiffTypeSelect = Frame(f3)
             Label(frameTiffTypeSelect,width=10, text="Tiff type ").pack(side = LEFT,padx= 2,pady=2)
             OptionMenu(frameTiffTypeSelect, self.tiffSaveBitType, *self.tiffMenuBitText).pack(side = LEFT, padx = 2,pady = 2) 
-            frameTiffTypeSelect.grid(row=5,column=3,padx=2,pady=2,sticky='we')
+            frameTiffTypeSelect.grid(row=1,column=2,padx=2,pady=2,sticky='we')
+
+            f3.pack(side =TOP)
+            ttk.Separator(f0,orient = "horizontal").pack(ipadx=200, pady=10)
+
+            
+            # --------------- Average Beads Frame --------------------------
+            frameAvrageBeads = Frame(f0)
+            Label(frameAvrageBeads, text = "4. Calculate averaged bead with desired blur type and save it.", font='Helvetica 10 bold').pack(side=TOP)
 
             self.blurMenuTypeText = ['gauss','none','median']
             self.blurApplyType =  StringVar()
             self.blurApplyType.set(self.blurMenuTypeText[0])
 
-            frameBlurTypeSelect = Frame(self)
+            frameBlurTypeSelect = Frame(frameAvrageBeads)
             Label(frameBlurTypeSelect,width=10, text=" Blur type:").pack(side = LEFT,padx= 2,pady=2)
 #            OptionMenu(frameBlurTypeSelect, self.blurApplyType, *self.blurMenuTypeText).pack(side = LEFT, padx = 2,pady = 2) 
             blurTypeSelect = ttk.Combobox(frameBlurTypeSelect, textvariable =self.blurApplyType, values = self.blurMenuTypeText,state = "readonly")
@@ -141,35 +148,60 @@ class BeadExtraction(Tk):
             self.precessBeadPrev = IntVar(value = 0)
             Checkbutton(frameBlurTypeSelect,variable = self.precessBeadPrev, text = " preview bead", onvalue =1, offvalue = 0).pack(side = LEFT, padx = 2,pady = 2)
 
-            frameBlurTypeSelect.grid(row=5,column=0,padx=2,pady=2,sticky='we')
+            frameBlurTypeSelect.pack(side = TOP,padx=2,pady=2)
 
-            frameAvrageBeads = Frame(self)
-            Button(frameAvrageBeads,text = 'Average Bead', command = self.BeadsArithmeticMean).pack(side = LEFT,padx=2,pady=2,fill=BOTH,expand=1)
-            Button(frameAvrageBeads, text = 'Save Average Bead', command = self.SaveAverageBead).pack(side = LEFT, padx=2,pady=2,fill=BOTH,expand = 1)
-            frameAvrageBeads.grid(row =6,column = 0,sticky='we')
+            frameAvrageBeadsButtons = Frame(frameAvrageBeads)
+            Button(frameAvrageBeadsButtons,text = 'Average Bead', command = self.BeadsArithmeticMean).pack(side = LEFT,padx=2,pady=2,fill=BOTH,expand=1)
+            Button(frameAvrageBeadsButtons, text = 'Save Average Bead', command = self.SaveAverageBead).pack(side = LEFT, padx=2,pady=2,fill=BOTH,expand = 1)
+            frameAvrageBeadsButtons.pack(side=TOP)
+            frameAvrageBeads.pack(side = TOP)#grid(row =6,column = 0,sticky='we')
 
             # frameIdealBead = Frame(self)
             # Button(frameIdealBead,text = 'Save Plane Bead', command = self.SavePlaneSphereBead).pack(side = LEFT,padx=2,pady=2,fill=BOTH,expand=1)
             # Button(frameIdealBead, text = 'Save Airy Bead', command = self.SaveAirySphereBead).pack(side = LEFT, padx=2,pady=2,fill=BOTH,expand = 1)
             # frameIdealBead.grid(row =7,column = 0,sticky='we')
 
+            ttk.Separator(f0,orient = "horizontal").pack(ipadx=200, pady=10)
+
+            Button(f0, text='Close', background='yellow', command = quit).pack(side = TOP)#grid(row = 6, column = 3,padx=2,pady=2, sticky = 'we')
+
+
+            f0.grid(row = 1, column = 0, sticky = "NSWE")
+
+            # ---------------- Bead Photo Frame -----------------------------
+            canvasFrame = Frame(self)
+            self.cnv1 = Canvas(canvasFrame,  width = wwidth, height = wheight, bg = 'white')
+            self.cnv1.grid(row = 0,column=0,sticky=(N,E,S,W))
+            # main image scrollbars
+            self.hScroll = Scrollbar(canvasFrame, orient = 'horizontal')
+            self.vScroll = Scrollbar(canvasFrame, orient = 'vertical') 
+            self.hScroll.grid(row = 1,column=0,columnspan=2,sticky=(E,W))
+            self.vScroll.grid(row=0,column=1,sticky=(N,S))
+            self.hScroll.config(command = self.cnv1.xview)
+            self.cnv1.config(xscrollcommand=self.hScroll.set)
+            self.vScroll.config(command = self.cnv1.yview)
+            self.cnv1.config(yscrollcommand=self.vScroll.set)
+            # mark bead with right click
+            self.cnv1.bind('<Button-3>', self.BeadMarkClick)
+            canvasFrame.grid(row = 1,column = 1, sticky = "WENS")
+
+            # -------------- Bead Preview Frame -----------------------------
+            beadPreviewFrame = Frame(self)
 
             #test bead display canvas. May be removed. if implemented separate window.
-            beadPreviewFrame = Frame(self)
             Label(beadPreviewFrame, text = 'Bead Preview').pack(side = TOP ,padx = 2, pady = 2)
             self.cnvImg = Canvas(beadPreviewFrame,  width = 190, height = 570, bg = 'white')
             self.cnvImg.pack(side = TOP, padx = 2, pady = 2)
-            beadPreviewFrame.grid(row = 0,column=3, rowspan=10,sticky=(N,E,W))
 
-            beadShowFrame = Frame(self)
-            self.beadPrevNum = Entry(beadShowFrame, width = 5)
+
+            beadPreviewMenuFrame = Frame(beadPreviewFrame)
+            self.beadPrevNum = Entry(beadPreviewMenuFrame, width = 5)
             self.beadPrevNum.pack(side = LEFT)
             self.beadPrevNum.insert(0,len(self.beadCoords))
-            Button(beadShowFrame, text = "Bead 2D",command = self.PlotBeadPreview2D).pack(side = LEFT)
-            Button(beadShowFrame, text = "Bead 3D",command = self.PlotBeadPreview3D).pack(side = LEFT)
-            beadShowFrame.grid(row=1,column = 3,padx=2,pady=2)
-
-            Button(self, text='Close', background='yellow', command = quit).grid(row = 6, column = 3,padx=2,pady=2, sticky = 'we')
+            Button(beadPreviewMenuFrame, text = "Bead 2D",command = self.PlotBeadPreview2D).pack(side = LEFT)
+            Button(beadPreviewMenuFrame, text = "Bead 3D",command = self.PlotBeadPreview3D).pack(side = LEFT)
+            beadPreviewMenuFrame.pack(side = TOP,padx=2,pady=2)
+            beadPreviewFrame.grid(row = 1, column = 2, sticky = "NSWE")
 
       def Foo(self):
             """placeholder function"""
