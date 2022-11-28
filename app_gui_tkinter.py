@@ -47,34 +47,42 @@ TODO:
 
 
 
-class VoxelConfig(Frame):
-    newFrame = None
-
+class GetVoxelPopup(Frame):
+    """Class for popup window with string value input"""
+    dialogWindow = None
+    val = None
     def __init__(self, master=None):
-        Frame.__init__(self, master)
+#        Frame.__init__(self, master)
 
-        self.newFrame = Toplevel(master)
-        self.label = Label(self.newFrame, text="Voxelin format z x y:")
+        self.dialogWindow = Toplevel(master)
+        self.dialogWindow.geometry("150x100")
+        self.label = Label(self.dialogWindow, text="Voxel in format z, x, y:")
         self.label.pack()
 #        self.value = StringVar()
-        self.entry = Entry(self.newFrame)
+        self.entry = Entry(self.dialogWindow)
         self.entry.pack()
-        self.entry.insert(0,"skip voxel dialog")
+        self.entry.insert(0,"enter voxel values")
         self.entry.bind('<Return>',self.close_window)
 
-#        self.button = Button(self.newFrame, text='Ok', command=lambda: self.close_window())
+        self.button = Button(self.dialogWindow, text='Ok', command=lambda: self.close_window())
+        self.button.pack(side=TOP)
 #        self.button.pack()
-        print(self.value)
 
     def close_window(self):
-        if self.newFrame:
+        if self.dialogWindow:
             try:
-                self.value = self.entry.get()
-                print("self.value = ", self.value)
-                self.newFrame.destroy()
+                #TODO : - add entry content check
+                self.val = (self.entry.get()).split(",")
+
+#                self.master.beadVoxelSize[0] = float(val[0])
+#                self.master.beadVoxelSize[1] = float(val[1])
+#                self.master.beadVoxelSize[2] = float(val[2])
+
+                print("self.value = ", float(self.val[0]), float(self.val[1]), float(self.val[2]))
+                self.dialogWindow.destroy()
             except:
                 print("Failed to close window")
-            self.newFrame = None
+            self.dialogWindow = None
 
 class MainWindowGUI(Tk):
 
@@ -92,12 +100,12 @@ class MainWindowGUI(Tk):
         Label(self, text="PSF  calculation:", font='Helvetica 14 bold').grid(row = 0, column = 1)         # blanc insert
         f1 = Frame(self)
         Label(f1, text="").grid(row = 0, column = 0)         # blanc insert
-        Label(f1,text="1. Load avaraged bead image created with bead extractor application.", font='Helvetica 10 bold').grid(row=1, column = 1, columnspan=2 , sticky = 'w')
+        Label(f1,text="1. Load avaraged bead image created with bead extractor application.", font='Helvetica 10 bold').grid(row=1, column = 0, columnspan=3 , sticky = 'w')
 
-        self.beadImgPathW = Entry(f1, width = 25, bg = 'white', fg = 'black')
-        self.beadImgPathW.grid(row = 2, column = 1, sticky = 'w')
+        self.beadImgPathW = Entry(f1, width = 50, bg = 'white', fg = 'black')
+        self.beadImgPathW.grid(row = 2, column = 0,columnspan =2, sticky = 'w')
         Button(f1,text = 'Load image file', command = self.LoadBeadImageFile).grid(row=2,column=2)
-        Separator(f1, orient="horizontal").grid( row=3, column=1, ipadx=200, pady=10, columnspan=2 )
+        Separator(f1, orient="horizontal").grid( row=3, column=0, ipadx=200, pady=10, columnspan=3 )
         f1.grid(column = 1,row =1, sticky = "WE")
 
 
@@ -252,31 +260,26 @@ class MainWindowGUI(Tk):
         self.figIMG_canvas_agg.get_tk_widget().grid(row = 1,column=5, rowspan=10,sticky=(N,E,S,W))
 #        self.imArr1 = self.UpscaleImage_Zaxis(self.imArr1,False)
 
-    def CallVoxelConfig(self):
-            popup = VoxelConfig(self)
-            self.wait_window(popup.newFrame)
-            print('DEBUG:', popup.value)
-#            self.create_widgets()
+    def GetVoxelDialog(self):
+        """Create diealog and return list of values"""
+        dWin = GetVoxelPopup(self)
+        self.wait_window(dWin.dialogWindow)
+        return ([float(a) for a in dWin.val])
+
     def LoadDeconvPhoto(self):
         """Loading raw photo for deconvolution with created PSF"""
-#            self.beadImPath = askopenfilenames(title = 'Load Beads Photo')
         fileList = askopenfilenames(title = 'Load Beads Photo')
         print(fileList, type(fileList),len(fileList))
         if len(fileList) > 1:
                 print("ImageRawClass")
-                self.img = ImageRaw( fileList, [0.022,0.022,0.022],fio.ReadTiffMultFiles(fileList) )
+                self.img = ImageRaw( fileList, self.GetVoxelDialog(), fio.ReadTiffMultFiles(fileList) )
                 self.img.ShowClassInfo()
         else:
                 beadImPath = fileList[0]
                 print("ImageRawClass")
                 print("read one file",beadImPath)
-                self.img = ImageRaw( beadImPath, [0.1,0.022,0.022],fio.ReadTiffStackFile(beadImPath) )
+                self.img = ImageRaw( beadImPath, self.GetVoxelDialog(), fio.ReadTiffStackFile(beadImPath) )
                 self.img.ShowClassInfo()
-                # self.img.RescaleZ(self.img.imArray.shape[1])
-                # self.img.ShowClassInfo()
-               
-#                self.imArr1 = fio.ReadTiffStackFile(beadImPath)
-        self.CallVoxelConfig()
         self.img.imArray = self.BlurImage(self.img.imArray)
         fig, axs = plt.subplots(3, 1, sharex = False, figsize=(2,6))
         fig.suptitle('Bead')

@@ -45,7 +45,13 @@ class ImageRaw:
                   return False
             return True            
 
-                  
+      def SetVoxel(self, inVoxel):
+            """Setting objects voxel"""
+            try:
+                  self.beadVoxelSize = inVoxel
+            except:
+                  print("Can't assign new voxel.")
+
 
       def RescaleZ(self, newZVoxelSize):
             "Rescale over z. newZVoxelSize in micrometers"
