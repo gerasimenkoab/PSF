@@ -63,11 +63,11 @@ class GetStringPopup(Frame):
         self.button.pack(side=TOP)
 
     def close_window(self):
-        """Close dialog and get valused from the entry"""
+        """Close dialog and get string value from the entry"""
         if self.dialogWindow:
             try:
                 #TODO : - add entry content check
-                self.val = (self.entry.get()).split(",")
+                self.val = self.entry.get()
 #                self.master.beadVoxelSize[0] = float(val[0])
 #                self.master.beadVoxelSize[1] = float(val[1])
 #                self.master.beadVoxelSize[2] = float(val[2])
@@ -257,7 +257,7 @@ class MainWindowGUI(Tk):
         """Create diealog and return list of values"""
         dWin = GetStringPopup(self,"Enter voxel size as z,x,y")
         self.wait_window(dWin.dialogWindow)
-        return ([float(a) for a in dWin.val])
+        return ([float(a) for a in dWin.val.split(",")])
 
     def LoadDeconvPhoto(self):
         """Loading raw photo for deconvolution with created PSF"""
