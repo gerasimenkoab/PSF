@@ -4,7 +4,7 @@ from tkinter import ttk
 from tkinter.messagebox import showerror, showinfo
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import askopenfilenames
-from PIL import ImageTk, Image
+from PIL import ImageTk, Image, ImageEnhance
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -30,11 +30,12 @@ import file_inout as fio
 class BeadExtraction(Tk):
       """Class provides instruments for extraction of beads from microscope multilayer photo."""
 
-      def __init__(self, master = None, wwidth=600, wheight = 600):
+      def __init__(self, master = None, wwidth = 600, wheight = 600):
             super().__init__()
             # new  class properties
             self.beadCoords = [] # Coordinates of beads on the canvas
             self.beadMarks = []  # rectangle pics on the canvas
+            self.intensityFactor = 1.0 # intensity factor for beads selection widget
 
             #list of arrays
             beadZlist = []
@@ -42,12 +43,13 @@ class BeadExtraction(Tk):
             beadYlist = []
             beadVal = []
 
-            self.sideHalf = 18
+            self.sideHalf = 18 # default selection halfsize
+
             self.beadDiameter = 0.2 # initial bead diameter in micrometers = diameter(nm)/1000
 
             self.beadVoxelSize = [0.2,0.089,0.089] # microscope voxel size(z,x,y) in micrometres (resolution=micrometre/pixel)
             self.voxelFields = 'Z','X','Y'
-            self.voxelSizeEntries ={}
+            self.voxelSizeEntries = {}
 
             self.xr = 0
             self.yr = 0
@@ -57,16 +59,21 @@ class BeadExtraction(Tk):
             self.resizable(False,False)
             Label(self, text="Extract Beads Set from the Microscope Image", font='Helvetica 14 bold').grid(row=0,column = 0, columnspan=2)
 
-            f0= Frame(self)
+            f0 = Frame(self)
             #making frames to pack several fileds in one grid cell
 
             # -------------- image and canvas frame --------------------------
             f1 = Frame(f0)
             Label(f1, text = "1. Load beads photos from the microscope and enter bead size and voxel parameters", font='Helvetica 10 bold').grid(row= 0, column = 0,columnspan = 2, sticky = 'w')
 
-            Button(f1, text = 'Load Beads Photo', command = self.LoadBeadsPhoto).grid(row=1,column=0,padx=2,pady=2,sticky='we')
+            f1_1 = Frame(f1)
+            Button(f1_1, text = 'Load Beads Photo', command = self.LoadBeadsPhoto).pack(side = LEFT, padx = 2, pady = 2) #.grid(row = 1, column = 0, padx = 2, pady = 2, sticky = 'we')
+            Label(f1_1, text = " Brightness:").pack(side = LEFT, padx = 2, pady = 2)
+            Button(f1_1, text = '+', command = self.AddBrightnessToBeadSelectionWidget).pack(side = LEFT, padx = 2, pady = 2) #.grid(row=1,column=1,padx=2,pady=2,sticky='we')
+            Button(f1_1, text = '-', command = self.LowerBrightnessToBeadSelectionWidget).pack(side = LEFT, padx = 2, pady = 2) #.grid(row=1,column=2,padx=2,pady=2,sticky='we')
+            f1_1.grid(row = 1, column = 0)
             frameBeadSize = Frame(f1)
-            Label(frameBeadSize, width=20, text = 'Actual bead Size:', anchor='w').pack(side = LEFT,padx= 2, pady = 2)
+            Label(frameBeadSize, width = 20, text = 'Actual bead Size:', anchor = 'w').pack(side = LEFT, padx = 2, pady = 2)
             self.beadSizeEntry = Entry(frameBeadSize, width = 5, bg = 'green', fg = 'white')
             self.beadSizeEntry.pack(side = LEFT,padx=2,pady=2)
             Label(frameBeadSize, text = '\u03BCm ').pack(side  = LEFT)# mu simbol encoding - \u03BC
@@ -163,7 +170,7 @@ class BeadExtraction(Tk):
 
             ttk.Separator(f0,orient = "horizontal").pack(ipadx=200, pady=10)
 
-            Button(f0, text='Close', background='yellow', command = quit).pack(side = TOP)#grid(row = 6, column = 3,padx=2,pady=2, sticky = 'we')
+#            Button(f0, text='Close', background='yellow', command = quit).pack(side = TOP)#grid(row = 6, column = 3,padx=2,pady=2, sticky = 'we')
 
 
             f0.grid(row = 1, column = 0, sticky = "NSWE")
@@ -207,6 +214,31 @@ class BeadExtraction(Tk):
             """placeholder function"""
             pass
             print("do nothing.")
+
+      def AddBrightnessToBeadSelectionWidget(self):
+            """ Funcion increase intensity """
+            self.intensityFactor *= 1.1 
+            # replacing image on the canvas
+            enhancer = ImageEnhance.Brightness(self.imgBeadsRaw)
+            imgCanvEnhaced = enhancer.enhance(self.intensityFactor)
+            # preparing image for canvas from desired frame
+            self.imgCnv = ImageTk.PhotoImage(imgCanvEnhaced)
+            self.cnv1.create_image(0, 0, image = self.imgCnv, anchor = NW)
+            # updating scrollers
+            self.cnv1.configure(scrollregion = self.cnv1.bbox('all'))  
+
+      def LowerBrightnessToBeadSelectionWidget(self):
+            """ Funcion decrease intensity """
+            self.intensityFactor *= 0.9 
+            # replacing image on the canvas
+            enhancer = ImageEnhance.Brightness(self.imgBeadsRaw)
+            imgCanvEnhaced = enhancer.enhance(self.intensityFactor)
+            # preparing image for canvas from desired frame
+            self.imgCnv = ImageTk.PhotoImage(imgCanvEnhaced)
+            self.cnv1.create_image(0, 0, image = self.imgCnv, anchor = NW)
+            # updating scrollers
+            self.cnv1.configure(scrollregion = self.cnv1.bbox('all'))  
+
 
       def Bead2Arrays(self,beadID):
             bead = self.selectedBeads[int(beadID)]
@@ -410,8 +442,6 @@ class BeadExtraction(Tk):
                         print("disp_layer:",disp_layer )
                         print(fileList[ disp_layer])
                         self.imgBeadsRaw = Image.open( fileList[ disp_layer ] )
-                        # preparing image for canvas from desired frame
-                        self.imgCnv = ImageTk.PhotoImage(self.imgBeadsRaw)
                   except:
                         showerror("Error"," Multifile load: Can't read file for canvas")
                         return
@@ -423,15 +453,15 @@ class BeadExtraction(Tk):
                         self.imgBeadsRaw = Image.open(beadImPath)
                         print(self.imgBeadsRaw.mode)
                         print("Number of frames: ", self.imgBeadsRaw.n_frames)
-                        dispFrameNumber = int( self.imgBeadsRaw.n_frames / 2) +6
+                        dispFrameNumber = int( self.imgBeadsRaw.n_frames / 2) + 6
                         print("Frame number for output: ", dispFrameNumber)
                         # setting imgTmp to desired number
                         self.imgBeadsRaw.seek(dispFrameNumber)
-                        # preparing image for canvas from desired frame
-                        self.imgCnv = ImageTk.PhotoImage(self.imgBeadsRaw)
                   except:
                         showerror("Error","Singlefile load: Can't read file for canvas.")
                         return
+            # preparing image for canvas from desired frame
+            self.imgCnv = ImageTk.PhotoImage(self.imgBeadsRaw)
             # replacing image on the canvas
             self.cnv1.create_image(0, 0, image = self.imgCnv, anchor = NW)
             # updating scrollers
