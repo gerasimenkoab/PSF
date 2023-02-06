@@ -10,7 +10,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.cm as cm
 import itertools
-import os.path
+import os
 from os import path
 import numpy as np
 from scipy.special import jv
@@ -22,6 +22,7 @@ import file_inout as fio
 #from  ImageRaw_class import ImageRaw
 
 """   TODO: 
+       - change layer in bead selection window
        - add tiff tag with voxel size information
 """
 
@@ -36,6 +37,7 @@ class BeadExtraction(Tk):
             self.beadCoords = [] # Coordinates of beads on the canvas
             self.beadMarks = []  # rectangle pics on the canvas
             self.intensityFactor = 1.0 # intensity factor for beads selection widget
+            self.beadsPhotoLayerID = 0 # default index of beads microscope photo
 
             #list of arrays
             beadZlist = []
@@ -67,11 +69,16 @@ class BeadExtraction(Tk):
             Label(f1, text = "1. Load beads photos from the microscope and enter bead size and voxel parameters", font='Helvetica 10 bold').grid(row= 0, column = 0,columnspan = 2, sticky = 'w')
 
             f1_1 = Frame(f1)
-            Button(f1_1, text = 'Load Beads Photo', command = self.LoadBeadsPhoto).pack(side = LEFT, padx = 2, pady = 2) #.grid(row = 1, column = 0, padx = 2, pady = 2, sticky = 'we')
-            Label(f1_1, text = " Brightness:").pack(side = LEFT, padx = 2, pady = 2)
-            Button(f1_1, text = '+', command = self.AddBrightnessToBeadSelectionWidget).pack(side = LEFT, padx = 2, pady = 2) #.grid(row=1,column=1,padx=2,pady=2,sticky='we')
-            Button(f1_1, text = '-', command = self.LowerBrightnessToBeadSelectionWidget).pack(side = LEFT, padx = 2, pady = 2) #.grid(row=1,column=2,padx=2,pady=2,sticky='we')
-            f1_1.grid(row = 1, column = 0)
+            Button(f1_1, text = 'Load Beads Photo', command = self.LoadBeadsPhoto).pack(side = LEFT, padx = 52, pady = 2)
+            Label(f1_1, text = " Adjust canvas brightness:").pack(side = LEFT, padx = 2, pady = 2)
+            Button(f1_1, text = '+', command = self.AddBrightnessToBeadSelectionWidget).pack(side = LEFT, padx = 2, pady = 2) 
+            Button(f1_1, text = '-', command = self.LowerBrightnessToBeadSelectionWidget).pack(side = LEFT, padx = 2, pady = 2)
+            Label(f1_1, text = " Layer:").pack(side = LEFT, padx = 2, pady = 2)
+            Button(f1_1, text = '+', command = self.ShowNextLayer).pack(side = LEFT, padx = 2, pady = 2)
+            self.label_beadsPhotoLayerID = Label(f1_1, text = str(self.beadsPhotoLayerID))
+            self.label_beadsPhotoLayerID.pack(side = LEFT, padx = 2, pady = 2)
+            Button(f1_1, text = '-', command = self.ShowPrevLayer).pack(side = LEFT, padx = 2, pady = 2)
+            f1_1.grid(row = 1, column = 0, columnspan=2)
             frameBeadSize = Frame(f1)
             Label(frameBeadSize, width = 20, text = 'Actual bead Size:', anchor = 'w').pack(side = LEFT, padx = 2, pady = 2)
             self.beadSizeEntry = Entry(frameBeadSize, width = 5, bg = 'green', fg = 'white')
@@ -215,29 +222,51 @@ class BeadExtraction(Tk):
             pass
             print("do nothing.")
 
-      def AddBrightnessToBeadSelectionWidget(self):
-            """ Funcion increase intensity """
-            self.intensityFactor *= 1.1 
-            # replacing image on the canvas
+      def UpdateBeadSelectionWidgetImage(self):
+            """ Preparing image for canvas from desired frame with setted parameters."""
+            # brightness adjust
             enhancer = ImageEnhance.Brightness(self.imgBeadsRaw)
             imgCanvEnhaced = enhancer.enhance(self.intensityFactor)
-            # preparing image for canvas from desired frame
+
             self.imgCnv = ImageTk.PhotoImage(imgCanvEnhaced)
             self.cnv1.create_image(0, 0, image = self.imgCnv, anchor = NW)
             # updating scrollers
             self.cnv1.configure(scrollregion = self.cnv1.bbox('all'))  
+            self.DrawAllMarks()
+
+
+      def AddBrightnessToBeadSelectionWidget(self):
+            """ Funcion increase intensity """
+            self.intensityFactor *= 1.1 
+            self.UpdateBeadSelectionWidgetImage()
 
       def LowerBrightnessToBeadSelectionWidget(self):
             """ Funcion decrease intensity """
             self.intensityFactor *= 0.9 
-            # replacing image on the canvas
-            enhancer = ImageEnhance.Brightness(self.imgBeadsRaw)
-            imgCanvEnhaced = enhancer.enhance(self.intensityFactor)
-            # preparing image for canvas from desired frame
-            self.imgCnv = ImageTk.PhotoImage(imgCanvEnhaced)
-            self.cnv1.create_image(0, 0, image = self.imgCnv, anchor = NW)
-            # updating scrollers
-            self.cnv1.configure(scrollregion = self.cnv1.bbox('all'))  
+            self.UpdateBeadSelectionWidgetImage()
+
+
+      def ShowNextLayer(self):
+            """ Change visible layer """
+            self.beadsPhotoLayerID += 1
+            if self.beadsPhotoLayerID > self.imgBeadsRaw.n_frames - 1 :
+                  self.beadsPhotoLayerID = self.imgBeadsRaw.n_frames - 1
+            # updating label on interface
+            self.label_beadsPhotoLayerID.config(text = str(self.beadsPhotoLayerID))
+            self.imgBeadsRaw.seek(self.beadsPhotoLayerID)
+            self.UpdateBeadSelectionWidgetImage()
+
+
+      def ShowPrevLayer(self):
+            """ Change visible layer """
+            self.beadsPhotoLayerID += -1
+            if self.beadsPhotoLayerID < 0 :
+                  self.beadsPhotoLayerID = 0
+            # updating label on interface
+            self.label_beadsPhotoLayerID.config(text = str(self.beadsPhotoLayerID))
+            self.imgBeadsRaw.seek(self.beadsPhotoLayerID)
+            self.UpdateBeadSelectionWidgetImage()
+
 
 
       def Bead2Arrays(self,beadID):
@@ -426,22 +455,28 @@ class BeadExtraction(Tk):
             """Loading raw beads photo from file"""
 #            self.beadImPath = askopenfilenames(title = 'Load Beads Photo')
             fileList = askopenfilenames(title = 'Load Beads Photo')
-            print(fileList, type(fileList),len(fileList))
+#            print(fileList, type(fileList),len(fileList))
             if len(fileList) > 1:
-                  print("read list of files")
                   self.imgCnvArr = fio.ReadTiffMultFiles(fileList)
                   try:
-#TODO: select layer with maximum intensity value
-                        disp_layer = int(len(fileList)/2)
-                        disp_layer = 26 #
+#TODO: select layer with maximum intensity value. pack separate files to self.imgBeadRaw image object
                         # print("val:",np.argmax(self.imgCnvArr, axis=None))
                         # print((self.imgCnvArrad).shape)
                         # i = np.unravel_index(np.argmax(self.imgCnvArr, axis=None), self.imgCnvArrad.shape)
                         # print("index found:",i)
                         # disp_layer = i[0]
-                        print("disp_layer:",disp_layer )
-                        print(fileList[ disp_layer])
-                        self.imgBeadsRaw = Image.open( fileList[ disp_layer ] )
+
+                        # add code that pack all files to one multipage image
+                        self.beadsPhotoLayerID = int(len(fileList)/2)
+                        tmppath = os.getcwd()+"\\tmp.tiff"
+                        fio.SaveAsTiffStack(self.imgCnvArr, tmppath)
+                        self.imgBeadsRaw = Image.open(tmppath)
+                        self.imgBeadsRaw.seek(self.beadsPhotoLayerID)
+#                       self.imgBeadsRaw.info["filename"]  - to get filename for deletion
+#                        print("disp_layer:",disp_layer )
+#                        print(fileList[ disp_layer])
+#                        self.imgBeadsRaw = Image.open( fileList[ disp_layer ] )
+
                   except:
                         showerror("Error"," Multifile load: Can't read file for canvas")
                         return
@@ -453,13 +488,15 @@ class BeadExtraction(Tk):
                         self.imgBeadsRaw = Image.open(beadImPath)
                         print(self.imgBeadsRaw.mode)
                         print("Number of frames: ", self.imgBeadsRaw.n_frames)
-                        dispFrameNumber = int( self.imgBeadsRaw.n_frames / 2) + 6
-                        print("Frame number for output: ", dispFrameNumber)
+                        self.beadsPhotoLayerID = int( self.imgBeadsRaw.n_frames / 2)
+                        print("Frame number for output: ", self.beadsPhotoLayerID)
                         # setting imgTmp to desired number
-                        self.imgBeadsRaw.seek(dispFrameNumber)
+                        self.imgBeadsRaw.seek(self.beadsPhotoLayerID)
                   except:
                         showerror("Error","Singlefile load: Can't read file for canvas.")
                         return
+            # updating label on interface
+            self.label_beadsPhotoLayerID.config(text = str(self.beadsPhotoLayerID))
             # preparing image for canvas from desired frame
             self.imgCnv = ImageTk.PhotoImage(self.imgBeadsRaw)
             # replacing image on the canvas
@@ -477,13 +514,20 @@ class BeadExtraction(Tk):
             self.beadCoords.append([self.xr,self.yr])
 
       def BeadMarkClick(self,event):
-            """Append mouse event coordinates to global list."""
+            """Append mouse event coordinates to global list. Center is adjusted according to max intensity."""
             cnv = event.widget
             self.xr,self.yr = cnv.canvasx(event.x),cnv.canvasy(event.y)
-#            self.xr,self.yr = self.LocateFrameMAxIntensity2D()
+#            self.xr,self.yr = self.LocateFrameMAxIntensity2D()   # 2d center 
             self.xr,self.yr = self.LocateFrameMAxIntensity3D()
             self.beadMarks.append(cnv.create_rectangle(self.xr-self.sideHalf,self.yr-self.sideHalf,self.xr+self.sideHalf,self.yr+self.sideHalf, outline='chartreuse1',width = 2))
             self.beadCoords.append([self.xr,self.yr])
+
+      def DrawAllMarks(self):
+            """Draw marks for beads on main canvas(cnv1)"""
+            cnv = self.cnv1
+            for self.xr,self.yr in self.beadCoords:
+                  self.beadMarks.append(cnv.create_rectangle(self.xr-self.sideHalf,self.yr-self.sideHalf,self.xr+self.sideHalf,self.yr+self.sideHalf, outline='chartreuse1',width = 2))
+
 
       def LocateFrameMAxIntensity2D(self):
             """Locate point with maximum intensity in current 2d array.
@@ -528,8 +572,7 @@ class BeadExtraction(Tk):
             sample = self.imgCnvArr[:,bound1:bound2,bound3:bound4]
             maximum = np.amax(sample)
             coords = np.unravel_index(np.argmax(sample, axis=None), sample.shape)
-            #    print("LocateMaxIntensity: amax: ", maximum)
-            print("LocateMaxIntensity: coords:", coords)
+#            print("LocateMaxIntensity: coords:", coords)
             return coords[2]+bound3,coords[1]+bound1
 
       def RemoveLastMark(self):

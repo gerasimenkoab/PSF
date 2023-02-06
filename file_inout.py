@@ -22,11 +22,11 @@ def ReadTiffStackFile(fileName):
 
 def ReadTiffMultFiles(fileNameList):
     """Function ReadTiffStackFile() reads tiff stack from file and return np.array"""
-    print("Loading Image from tiff stack file..... ")
+    print("Loading Images from files", end = " ")
     intensity_mult = 10
     try:
         image_preread = Image.open(fileNameList[0])
-        print("color_mode:", image_preread.mode)
+        print("color_mode:", image_preread.mode, ".......", end = " ")
         nlayers =  len(fileNameList)
         ncols, nrows = image_preread.size
         imgArray = np.ndarray([nlayers,nrows,ncols])
@@ -46,7 +46,7 @@ def ReadTiffMultFiles(fileNameList):
         elif image_preread.mode =="I" or image_preread.mode =="L":
             for i,fileName in enumerate(fileNameList):
                 imgArray[i,:,:] = np.array(Image.open(fileName))
-        print("Done!")
+        print("Done.")
         return imgArray
     except FileNotFoundError:
         print("ReadTiffStackFile: Error. File not found!")
@@ -92,16 +92,29 @@ def SaveTiffStack(tiffDraw = np.zeros([3,4,6]), dirName = "img", filePrefix = "!
     print("file saved in one tiff",dirName+"\\"+filePrefix+".tiff")
 
 def SaveAsTiffStack(tiffDraw = np.zeros([3,4,6]), filename= "img", outtype = "uint8"):
-    """ Print files for any input arrray of intensity values 
-        tiffDraw - numpy ndarray of intensity values"""
-    print("Trying to save file", outtype)
+    """ Save 3D numpy array as tiff multipage file. 
+        tiffDraw -- 3d numpy ndarray of intensity values
+        filename -- name of output file
+        outtype -- type of output file ( uint8/16/32)"""
+    print( "Trying to save tiff file as:", filename, " color_mode:", outtype ,".......", end = " ")
     imlist = []
     for tmp in tiffDraw:
-        imlist.append(Image.fromarray(tmp.astype(outtype)))
+        imlist.append( Image.fromarray( tmp.astype(outtype) ) )
 
     imlist[0].save( filename, save_all=True, append_images=imlist[1:])
-    print("File saved in one tiff", filename)
+    print("Done.")
+    #print( "File saved in one tiff", filename )
 
+def SaveAsTiffStack_tag(tiffDraw = np.zeros([3,4,6]), filename= "img", outtype = "uint8"):
+    """ Print files for any input arrray of intensity values 
+        tiffDraw - numpy ndarray of intensity values"""
+    print( "Trying to save file", outtype )
+    imlist = []
+    for tmp in tiffDraw:
+        imlist.append( Image.fromarray( tmp.astype(outtype) ) )
+    #imlist[0].tag[270] = "testing tag system"
+    imlist[0].save( filename, tiffinfo = "testing tag system", save_all=True, append_images=imlist[1:])
+    print( "File saved in one tiff", filename )
 
 
 
