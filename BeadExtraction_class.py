@@ -453,30 +453,20 @@ class BeadExtraction(Tk):
 
       def LoadBeadsPhoto(self):
             """Loading raw beads photo from file"""
-#            self.beadImPath = askopenfilenames(title = 'Load Beads Photo')
             fileList = askopenfilenames(title = 'Load Beads Photo')
-#            print(fileList, type(fileList),len(fileList))
             if len(fileList) > 1:
                   self.imgCnvArr = fio.ReadTiffMultFiles(fileList)
                   try:
-#TODO: select layer with maximum intensity value. pack separate files to self.imgBeadRaw image object
-                        # print("val:",np.argmax(self.imgCnvArr, axis=None))
-                        # print((self.imgCnvArrad).shape)
-                        # i = np.unravel_index(np.argmax(self.imgCnvArr, axis=None), self.imgCnvArrad.shape)
-                        # print("index found:",i)
-                        # disp_layer = i[0]
-
-                        # add code that pack all files to one multipage image
                         self.beadsPhotoLayerID = int(len(fileList)/2)
                         tmppath = os.getcwd()+"\\tmp.tiff"
+                        # Checking existance of self.imgBeadsRaw.close()
+                        try: 
+                              self.imgBeadsRaw.close()
+                        except :
+                              pass
                         fio.SaveAsTiffStack(self.imgCnvArr, tmppath)
                         self.imgBeadsRaw = Image.open(tmppath)
                         self.imgBeadsRaw.seek(self.beadsPhotoLayerID)
-#                       self.imgBeadsRaw.info["filename"]  - to get filename for deletion
-#                        print("disp_layer:",disp_layer )
-#                        print(fileList[ disp_layer])
-#                        self.imgBeadsRaw = Image.open( fileList[ disp_layer ] )
-
                   except:
                         showerror("Error"," Multifile load: Can't read file for canvas")
                         return
@@ -674,9 +664,9 @@ class BeadExtraction(Tk):
                               break
                   tiffBit = self.tiffMenuBitDict[self.tiffSaveBitType.get()]
                   for idx,bead in enumerate(self.selectedBeads):
-                        bead = self.BlurBead(bead)
-                        if self.doRescaleOverZ.get() == 1:
-                              bead = self.UpscaleBead_Zaxis(bead)
+                        # bead = self.BlurBead(bead)
+                        # if self.doRescaleOverZ.get() == 1:
+                        #       bead = self.UpscaleBead_Zaxis(bead)
                         fio.SaveTiffStack(bead,  txt_folder, txt_prefix+str(idx).zfill(2),tiffBit)
                         # the rest is test bead view print. May be removed later
 #                        self.imgBeadRaw = bead

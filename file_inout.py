@@ -93,17 +93,20 @@ def SaveTiffStack(tiffDraw = np.zeros([3,4,6]), dirName = "img", filePrefix = "!
 
 def SaveAsTiffStack(tiffDraw = np.zeros([3,4,6]), filename= "img", outtype = "uint8"):
     """ Save 3D numpy array as tiff multipage file. 
+        Input:
         tiffDraw -- 3d numpy ndarray of intensity values
         filename -- name of output file
         outtype -- type of output file ( uint8/16/32)"""
     print( "Trying to save tiff file as:", filename, " color_mode:", outtype ,".......", end = " ")
     imlist = []
+#    try: 
     for tmp in tiffDraw:
         imlist.append( Image.fromarray( tmp.astype(outtype) ) )
-
     imlist[0].save( filename, save_all=True, append_images=imlist[1:])
     print("Done.")
-    #print( "File saved in one tiff", filename )
+    # except Exception as e:
+    #     print("Not done.")
+    #     print("Exception message: ", e)
 
 def SaveAsTiffStack_tag(tiffDraw = np.zeros([3,4,6]), filename= "img", outtype = "uint8"):
     """ Print files for any input arrray of intensity values 
