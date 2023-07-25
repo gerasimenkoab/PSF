@@ -47,15 +47,15 @@ class main_window_gui(tk.Tk):
         ttk.Label(child, text="AUTHORS").grid(row=1, column=5)
         ttk.Label(child, text="").grid(row=2, column=0)
 
-        ttk.Label(child, text="Chukanov V.").grid(row=3, column=1)
+        ttk.Label(child, text="Gerasimenko A.").grid(row=3, column=1)
         ttk.Label(child, text="").grid(row=3, column=2)
-        ttk.Label(child, text="Pchitskaya E.").grid(row=3, column=3)
+        ttk.Label(child, text="Sachuk A.").grid(row=3, column=3)
         ttk.Label(child, text="").grid(row=3, column=4)
 
         ttk.Label(child, text="").grid(row=3, column=6)
-        ttk.Label(child, text="Gerasimenko A.").grid(row=3, column=7)
+        ttk.Label(child, text= "Chukanov V.").grid(row=3, column=7)
         ttk.Label(child, text="").grid(row=3, column=8)
-        ttk.Label(child, text="Sachuk A.").grid(row=3, column=9)
+        ttk.Label(child, text="Pchitskaya E.").grid(row=3, column=9)
         ttk.Label(child, text="").grid(row=3, column=10)
 
         ttk.Label(child, text="").grid(row=4, column=0)
