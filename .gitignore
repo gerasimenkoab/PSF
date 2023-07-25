@@ -1,0 +1,10 @@
+tmp.tiff
+venv-spsf/
+src/view/__pycache__/
+src/controller/__pycache__/
+src/model/__pycache__/
+logs/
+src/__pycache__
+src/cnn/__pycache__
+src/model/__pycache__
+src/controller/__pycache__
